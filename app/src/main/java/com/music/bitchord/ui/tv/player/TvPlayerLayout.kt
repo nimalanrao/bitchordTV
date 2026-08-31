@@ -1,12 +1,15 @@
 package com.music.bitchord.ui.tv.player
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,16 +18,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,6 +40,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.music.bitchord.data.model.Song
+import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.ui.tv.theme.TvColors
 import com.music.bitchord.ui.tv.theme.TvDimensions
 import com.music.bitchord.ui.tv.theme.TvSFProDisplay
@@ -60,7 +68,9 @@ fun TvPlayerLayout(
     onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    val showNerdStats by AppSettings.showNerdStats.collectAsState()
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .padding(
@@ -69,47 +79,93 @@ fun TvPlayerLayout(
                 top = TvDimensions.SafeMarginVertical,
                 bottom = TvDimensions.SafeMarginVertical,
             ),
-        verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        // Upper-Left Context Label
+        // Top Region: Context Label (Left) & Stats for Nerds (Right)
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopStart)
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
         ) {
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = null,
-                tint = TvColors.AccentRed,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(
-                    text = "PLAYING FROM",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.W700,
-                    letterSpacing = 1.sp,
-                    fontFamily = TvSFProDisplay,
-                    color = TvColors.TextSecondary,
+            // Upper-Left Context Label
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = null,
+                    tint = TvColors.AccentRed,
+                    modifier = Modifier.size(18.dp),
                 )
-                Text(
-                    text = playingFromSource ?: song.albumName ?: song.artist,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.W600,
-                    fontFamily = TvSFProDisplay,
-                    color = TvColors.TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = "PLAYING FROM",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.W700,
+                        letterSpacing = 1.sp,
+                        fontFamily = TvSFProDisplay,
+                        color = TvColors.TextSecondary,
+                    )
+                    Text(
+                        text = playingFromSource ?: song.albumName ?: song.artist,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.W600,
+                        fontFamily = TvSFProDisplay,
+                        color = TvColors.TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            // Stats for Nerds Overlay Card (Top Right)
+            AnimatedVisibility(
+                visible = showNerdStats,
+                enter = fadeIn(),
+                exit = fadeOut(),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.Black.copy(alpha = 0.65f))
+                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "STATS FOR NERDS",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = TvSFProDisplay,
+                            color = TvColors.AccentRed,
+                            letterSpacing = 0.8.sp,
+                        )
+                        Text(
+                            text = "Codec: Opus / FLAC • 48 kHz / 24-bit",
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color.White,
+                        )
+                        Text(
+                            text = "Bitrate: 320 kbps (Lossless Master)",
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color.White.copy(alpha = 0.7f),
+                        )
+                    }
+                }
             }
         }
 
         // Lower Region: Metadata, Progress Bar & Transport Row
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Metadata Row: Album Thumbnail (64dp) + Title & Artist
+            // Metadata Row: Album Thumbnail (68dp) + Title & Artist
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,

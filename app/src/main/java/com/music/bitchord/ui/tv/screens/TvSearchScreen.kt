@@ -86,7 +86,7 @@ fun TvSearchScreen(
             .padding(
                 start = TvDimensions.SafeMarginHorizontal,
                 end = TvDimensions.SafeMarginHorizontal,
-                top = TvDimensions.SafeMarginVertical,
+                top = 16.dp,
             ),
     ) {
         // Search Input Bar

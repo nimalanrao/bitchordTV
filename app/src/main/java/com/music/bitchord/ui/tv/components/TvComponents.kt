@@ -1,9 +1,8 @@
 package com.music.bitchord.ui.tv.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -11,6 +10,7 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -54,8 +54,11 @@ import coil3.request.crossfade
 import com.music.bitchord.ui.tv.focus.onTvKeyEvent
 import com.music.bitchord.ui.tv.focus.tvButtonFocus
 import com.music.bitchord.ui.tv.focus.tvCardFocus
+import com.music.bitchord.ui.tv.theme.AppleSpringPreset
 import com.music.bitchord.ui.tv.theme.TvColors
 import com.music.bitchord.ui.tv.theme.TvSFProDisplay
+import com.music.bitchord.ui.tv.theme.TvThemeColors
+import com.music.bitchord.ui.tv.theme.appleSpring
 
 /**
  * Standard TV Content Card for albums, playlists, artists, and songs.
@@ -163,7 +166,7 @@ fun TvCard(
 
         Text(
             text = title,
-            color = if (isFocused) TvColors.AccentRed else TvColors.TextPrimary,
+            color = if (isFocused) TvColors.AccentRed else TvThemeColors.current.textPrimary,
             fontSize = 14.sp,
             fontWeight = FontWeight.W600,
             fontFamily = TvSFProDisplay,
@@ -175,7 +178,7 @@ fun TvCard(
         if (!subtitle.isNullOrBlank()) {
             Text(
                 text = subtitle,
-                color = TvColors.TextSecondary,
+                color = TvThemeColors.current.textSecondary,
                 fontSize = 12.sp,
                 fontFamily = TvSFProDisplay,
                 maxLines = 1,
@@ -187,7 +190,7 @@ fun TvCard(
 }
 
 /**
- * Standard TV focusable button.
+ * Standard TV focusable button with Apple Spring animation.
  */
 @Composable
 fun TvButton(
@@ -208,6 +211,7 @@ fun TvButton(
             isPrimary -> TvColors.AccentRed.copy(alpha = 0.85f)
             else -> TvColors.SurfaceVariant
         },
+        animationSpec = appleSpring(AppleSpringPreset.Snappy),
         label = "tvButtonBg",
     )
 
@@ -243,7 +247,7 @@ fun TvButton(
 }
 
 /**
- * Focusable TV icon button.
+ * Focusable TV icon button with Apple Spring animation.
  */
 @Composable
 fun TvIconButton(
@@ -266,6 +270,7 @@ fun TvIconButton(
             isPrimary -> TvColors.AccentRed
             else -> TvColors.SurfaceVariant
         },
+        animationSpec = appleSpring(AppleSpringPreset.Snappy),
         label = "tvIconBtnBg",
     )
 
@@ -288,7 +293,7 @@ fun TvIconButton(
                 isFocused -> Color.White
                 isActive -> TvColors.AccentRed
                 isPrimary -> Color.White
-                else -> TvColors.TextPrimary
+                else -> TvThemeColors.current.textPrimary
             },
             modifier = Modifier.size(iconSize),
         )
@@ -297,7 +302,6 @@ fun TvIconButton(
 
 /**
  * TV D-pad Remote Seek / Value Slider.
- * Press Left to decrease value, Right to increase value.
  */
 @Composable
 fun TvSlider(
@@ -370,6 +374,41 @@ fun TvSlider(
 }
 
 /**
+ * Apple-style Container Card for settings and group sections.
+ * Clean rounded 20dp surface with subtle border.
+ */
+@Composable
+fun TvAppleCard(
+    modifier: Modifier = Modifier,
+    title: String? = null,
+    shape: Shape = RoundedCornerShape(20.dp),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val palette = TvThemeColors.current
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(palette.surface)
+            .border(1.dp, palette.borderSubtle, shape)
+            .padding(20.dp),
+    ) {
+        if (!title.isNullOrBlank()) {
+            Text(
+                text = title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = TvSFProDisplay,
+                color = palette.textPrimary,
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+        }
+        content()
+    }
+}
+
+/**
  * TV Shelf Section Header.
  */
 @Composable
@@ -393,14 +432,14 @@ fun TvSectionHeader(
                 fontSize = 22.sp,
                 fontWeight = FontWeight.W700,
                 fontFamily = TvSFProDisplay,
-                color = TvColors.TextPrimary,
+                color = TvThemeColors.current.textPrimary,
             )
             if (!subtitle.isNullOrBlank()) {
                 Text(
                     text = subtitle,
                     fontSize = 14.sp,
                     fontFamily = TvSFProDisplay,
-                    color = TvColors.TextSecondary,
+                    color = TvThemeColors.current.textSecondary,
                 )
             }
         }
@@ -479,14 +518,14 @@ fun TvErrorState(
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = TvSFProDisplay,
-            color = TvColors.TextPrimary,
+            color = TvThemeColors.current.textPrimary,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = message,
             fontSize = 14.sp,
             fontFamily = TvSFProDisplay,
-            color = TvColors.TextSecondary,
+            color = TvThemeColors.current.textSecondary,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(0.6f),
         )
@@ -521,14 +560,14 @@ fun TvEmptyState(
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = TvSFProDisplay,
-            color = TvColors.TextPrimary,
+            color = TvThemeColors.current.textPrimary,
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = message,
             fontSize = 14.sp,
             fontFamily = TvSFProDisplay,
-            color = TvColors.TextSecondary,
+            color = TvThemeColors.current.textSecondary,
             textAlign = TextAlign.Center,
         )
     }
@@ -562,7 +601,7 @@ fun TvDialog(
                 modifier = modifier
                     .fillMaxWidth(0.55f)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(TvColors.Surface)
+                    .background(TvThemeColors.current.surface)
                     .padding(28.dp),
             ) {
                 Text(
@@ -570,7 +609,7 @@ fun TvDialog(
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = TvSFProDisplay,
-                    color = TvColors.TextPrimary,
+                    color = TvThemeColors.current.textPrimary,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 content()

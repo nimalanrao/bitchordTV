@@ -2,13 +2,11 @@ package com.music.bitchord.ui.tv.focus
 
 import android.view.KeyEvent
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,24 +16,21 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.music.bitchord.ui.tv.theme.AppleSpringPreset
 import com.music.bitchord.ui.tv.theme.TvColors
+import com.music.bitchord.ui.tv.theme.appleSpring
 
 /**
- * Standard TV card focus modifier.
- * Applies a smooth scale animation (1.05x), rounded border highlight, and elevation
+ * Standard TV card focus modifier with Apple spring animation.
+ * Applies a smooth spring scale animation (1.05x), rounded border highlight, and elevation
  * when the element receives D-pad focus.
  */
 fun Modifier.tvCardFocus(
@@ -52,7 +47,7 @@ fun Modifier.tvCardFocus(
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) focusedScale else 1.0f,
-        animationSpec = tween(durationMillis = 150),
+        animationSpec = appleSpring(AppleSpringPreset.Snappy),
         label = "tvCardFocusScale",
     )
 
@@ -84,7 +79,7 @@ fun Modifier.tvCardFocus(
 }
 
 /**
- * Standard TV button focus modifier.
+ * Standard TV button focus modifier with Apple snappy spring animation.
  */
 fun Modifier.tvButtonFocus(
     shape: Shape = RoundedCornerShape(10.dp),
@@ -98,7 +93,7 @@ fun Modifier.tvButtonFocus(
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) focusedScale else 1.0f,
-        animationSpec = tween(durationMillis = 120),
+        animationSpec = appleSpring(AppleSpringPreset.Snappy),
         label = "tvButtonFocusScale",
     )
 

@@ -17,12 +17,13 @@ import androidx.compose.ui.platform.LocalContext
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.music.bitchord.ui.tv.components.TvMeshBackground
 import com.music.bitchord.ui.tv.theme.TvColors
 
 /**
- * Ultra-performance single-pass cinematic TV background.
- * Combines global darkening, top context scrim, and bottom transport gradient into a single cached draw pass
- * to guarantee < 8.33ms (120 Hz) and < 16.67ms (60 Hz) frame budgets without GPU overdraw.
+ * Ultra-performance cinematic Apple Music TV background.
+ * In Lyrics mode: Renders full-bleed animated mesh gradient with noise grain.
+ * In Standard Player mode: Single-pass cached cinematic artwork scrim.
  */
 @Composable
 fun TvPlayerBackground(
@@ -30,68 +31,77 @@ fun TvPlayerBackground(
     modifier: Modifier = Modifier,
     isLyricsMode: Boolean = false,
 ) {
-    Box(modifier = modifier.fillMaxSize().background(TvColors.Background)) {
-        // Dynamic artwork background with smooth crossfade
-        Crossfade(
-            targetState = artworkUrl,
-            animationSpec = tween(durationMillis = 500),
-            label = "tvBackgroundCrossfade",
-        ) { url ->
-            if (!url.isNullOrBlank()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(url)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(TvColors.BackgroundGradient)
-                )
-            }
-        }
-
-        // Single-pass cached gradient overlay (0 GPU overdraw overhead)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .drawWithCache {
-                    val w = size.width
-                    val h = size.height
-
-                    val topBrush = Brush.verticalGradient(
-                        colors = listOf(Color(0xCC000000), Color(0x55000000), Color.Transparent),
-                        startY = 0f,
-                        endY = h * 0.35f,
-                    )
-
-                    val bottomBrush = Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color(0x88000000), Color(0xFB050508)),
-                        startY = h * 0.45f,
-                        endY = h,
-                    )
-
-                    val globalDarken = Color(if (isLyricsMode) 0xDD08080B else 0x8808080B)
-
-                    onDrawWithContent {
-                        drawContent()
-                        // 1. Global Darkening Pass
-                        drawRect(color = globalDarken, size = size)
-                        // 2. Top Scrim
-                        drawRect(brush = topBrush, size = Size(w, h * 0.35f))
-                        // 3. Bottom Scrim
-                        drawRect(
-                            brush = bottomBrush,
-                            topLeft = Offset(0f, h * 0.45f),
-                            size = Size(w, h * 0.55f),
-                        )
-                    }
-                }
+    if (isLyricsMode) {
+        // Apple Music 1:1 animated mesh gradient with noise grain
+        TvMeshBackground(
+            colors = listOf(
+                Color(0xFF4A1060), // Royal Plum
+                Color(0xFF16256A), // Deep Sapphire
+                Color(0xFF6B1A3F), // Crimson Berry
+                Color(0xFF101026), // Dark Indigo
+            ),
+            modifier = modifier,
         )
+    } else {
+        Box(modifier = modifier.fillMaxSize().background(TvColors.Background)) {
+            Crossfade(
+                targetState = artworkUrl,
+                animationSpec = tween(durationMillis = 500),
+                label = "tvBackgroundCrossfade",
+            ) { url ->
+                if (!url.isNullOrBlank()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(url)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(TvColors.BackgroundGradient),
+                    )
+                }
+            }
+
+            // Single-pass cached gradient overlay (0 GPU overdraw overhead)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawWithCache {
+                        val w = size.width
+                        val h = size.height
+
+                        val topBrush = Brush.verticalGradient(
+                            colors = listOf(Color(0xCC000000), Color(0x55000000), Color.Transparent),
+                            startY = 0f,
+                            endY = h * 0.35f,
+                        )
+
+                        val bottomBrush = Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color(0x88000000), Color(0xFB050508)),
+                            startY = h * 0.45f,
+                            endY = h,
+                        )
+
+                        val globalDarken = Color(0x9908080B)
+
+                        onDrawWithContent {
+                            drawContent()
+                            drawRect(color = globalDarken, size = size)
+                            drawRect(brush = topBrush, size = Size(w, h * 0.35f))
+                            drawRect(
+                                brush = bottomBrush,
+                                topLeft = Offset(0f, h * 0.45f),
+                                size = Size(w, h * 0.55f),
+                            )
+                        }
+                    },
+            )
+        }
     }
 }

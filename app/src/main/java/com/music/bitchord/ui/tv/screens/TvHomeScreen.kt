@@ -107,7 +107,7 @@ private fun TvHomeFeed(
         contentPadding = PaddingValues(
             start = TvDimensions.SafeMarginHorizontal,
             end = TvDimensions.SafeMarginHorizontal,
-            top = TvDimensions.SafeMarginVertical,
+            top = 12.dp,
             bottom = 120.dp,
         ),
         verticalArrangement = Arrangement.spacedBy(TvDimensions.ShelfSpacing),

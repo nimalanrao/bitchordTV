@@ -231,13 +231,13 @@ fun TvKeyboard(
 
         // Bottom Action Bar: Page Toggles, Space, Cursor Movement, Clear, Done
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Page Switcher (ABC / 123)
             TvKeyButton(
                 label = if (currentPage == KeyboardPage.LETTERS) "?123" else "ABC",
-                width = 62.dp,
+                width = 58.dp,
                 onClick = {
                     currentPage = if (currentPage == KeyboardPage.LETTERS) KeyboardPage.SYMBOLS else KeyboardPage.LETTERS
                 },
@@ -247,7 +247,7 @@ fun TvKeyboard(
             TvKeyButton(
                 icon = Icons.Default.EmojiEmotions,
                 contentDescription = "Emoji Page",
-                width = 44.dp,
+                width = 42.dp,
                 isSelected = currentPage == KeyboardPage.EMOJI,
                 onClick = {
                     currentPage = if (currentPage == KeyboardPage.EMOJI) KeyboardPage.LETTERS else KeyboardPage.EMOJI
@@ -269,7 +269,7 @@ fun TvKeyboard(
             TvKeyButton(
                 icon = Icons.Default.SpaceBar,
                 contentDescription = "Space",
-                width = 130.dp,
+                width = 110.dp,
                 onClick = {
                     insertText(text, cursorIndex, " ", onTextChange)
                 },
@@ -300,15 +300,15 @@ fun TvKeyboard(
             TvKeyButton(
                 icon = Icons.Default.Keyboard,
                 contentDescription = "System Keyboard / Voice",
-                width = 38.dp,
+                width = 42.dp,
                 onClick = onOpenSystemIme,
             )
 
-            // Done Button
+            // Done / Checkmark Button — with generous width and spacing
             TvKeyButton(
                 icon = Icons.Default.Check,
                 label = "Done",
-                width = 72.dp,
+                width = 96.dp,
                 isPrimary = true,
                 onClick = onDone,
             )
@@ -331,7 +331,7 @@ private fun insertText(
 }
 
 /**
- * Super smooth TV keyboard key button with physics-based spring hover scale,
+ * Super smooth TV keyboard key button with Apple-grade snappy spring hover scale,
  * glowing focus halo, and elevation z-index elevation.
  */
 @Composable
@@ -349,12 +349,12 @@ private fun TvKeyButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    // 1. Spring-based physics scale animation
+    // 1. Apple Spring-based physics scale animation
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.18f else 1.0f,
+        targetValue = if (isFocused) 1.15f else 1.0f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium,
+            dampingRatio = 0.65f,
+            stiffness = 400f,
         ),
         label = "tvKeyScale",
     )

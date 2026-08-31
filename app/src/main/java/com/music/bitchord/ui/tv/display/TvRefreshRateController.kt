@@ -81,17 +81,39 @@ object TvRefreshRateController {
             val lp = window.attributes ?: WindowManager.LayoutParams()
             val caps = _capabilities.value
 
+            // Find best matching mode or scan all supported modes for >=119Hz
             val targetModeId = when (pref) {
-                TvRefreshRatePreference.SYSTEM_AUTO -> 0 // 0 resets to platform default
+                TvRefreshRatePreference.SYSTEM_AUTO -> 0
                 TvRefreshRatePreference.SMOOTH_60 -> caps.compatible60ModeId ?: 0
-                TvRefreshRatePreference.ULTRA_120 -> caps.compatible120ModeId ?: 0
+                TvRefreshRatePreference.ULTRA_120 -> {
+                    caps.compatible120ModeId
+                        ?: caps.supportedModes.firstOrNull { it.refreshRate >= 119.0f }?.id
+                        ?: 0
+                }
             }
 
-            if (lp.preferredDisplayModeId != targetModeId) {
-                lp.preferredDisplayModeId = targetModeId
-                window.attributes = lp
-                Log.d(TAG, "Applied preferredDisplayModeId=$targetModeId for preference=$pref")
+            lp.preferredDisplayModeId = targetModeId
+
+            // Direct refresh rate override for panels where mode IDs are not reported
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                when (pref) {
+                    TvRefreshRatePreference.ULTRA_120 -> {
+                        @Suppress("DEPRECATION")
+                        lp.preferredRefreshRate = 120.0f
+                    }
+                    TvRefreshRatePreference.SMOOTH_60 -> {
+                        @Suppress("DEPRECATION")
+                        lp.preferredRefreshRate = 60.0f
+                    }
+                    TvRefreshRatePreference.SYSTEM_AUTO -> {
+                        @Suppress("DEPRECATION")
+                        lp.preferredRefreshRate = 0.0f
+                    }
+                }
             }
+
+            window.attributes = lp
+            Log.d(TAG, "Applied display settings: preferredDisplayModeId=$targetModeId, pref=$pref")
         } catch (e: Exception) {
             Log.w(TAG, "Failed to apply display mode to window", e)
         }

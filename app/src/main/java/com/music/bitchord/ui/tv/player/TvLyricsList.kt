@@ -1,6 +1,8 @@
 package com.music.bitchord.ui.tv.player
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -39,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,10 +52,16 @@ import com.music.bitchord.ui.tv.components.TvEmptyState
 import com.music.bitchord.ui.tv.components.TvErrorState
 import com.music.bitchord.ui.tv.focus.onTvKeyEvent
 import com.music.bitchord.ui.tv.focus.tvButtonFocus
+import com.music.bitchord.ui.tv.theme.AppleSpringPreset
 import com.music.bitchord.ui.tv.theme.TvColors
 import com.music.bitchord.ui.tv.theme.TvSFProDisplay
+import com.music.bitchord.ui.tv.theme.appleSpring
 import kotlinx.coroutines.launch
 
+/**
+ * 1:1 Apple Music TV Lyrics List with smooth spring-physics auto-scroll
+ * and active line scaling.
+ */
 @Composable
 fun TvLyricsList(
     lyrics: List<LyricLine>?,
@@ -72,7 +81,7 @@ fun TvLyricsList(
         LyricsSynchronizer.synchronize(lyrics, currentPositionMs)
     }
 
-    // Auto-scroll when in auto-follow mode
+    // Auto-scroll when in auto-follow mode with smooth spring spec
     LaunchedEffect(syncState.activeLineIndex, isManualScroll) {
         if (!isManualScroll && lyrics != null && syncState.activeLineIndex in lyrics.indices) {
             val targetIndex = (syncState.activeLineIndex - 1).coerceAtLeast(0)
@@ -128,8 +137,8 @@ fun TvLyricsList(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(top = 80.dp, bottom = 140.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    contentPadding = PaddingValues(top = 100.dp, bottom = 180.dp),
+                    verticalArrangement = Arrangement.spacedBy(28.dp),
                 ) {
                     itemsIndexed(
                         items = lyrics,
@@ -186,39 +195,54 @@ private fun TvLyricLineItem(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    val textColor = when {
-        isActive -> Color.White
-        isFocused -> Color.White
-        isPast -> Color(0x66FFFFFF)
-        else -> Color(0x88FFFFFF)
-    }
+    val textColor by animateColorAsState(
+        targetValue = when {
+            isActive -> Color.White
+            isFocused -> Color.White
+            isPast -> Color.White.copy(alpha = 0.40f)
+            else -> Color.White.copy(alpha = 0.55f)
+        },
+        animationSpec = appleSpring(AppleSpringPreset.Gentle),
+        label = "lyricTextColor",
+    )
 
-    val fontSize = if (isActive) 30.sp else 22.sp
-    val fontWeight = if (isActive) FontWeight.W800 else FontWeight.W500
+    val scale by animateFloatAsState(
+        targetValue = if (isActive) 1.04f else 1.0f,
+        animationSpec = appleSpring(AppleSpringPreset.Gentle),
+        label = "lyricScale",
+    )
+
+    val fontSize = if (isActive) 36.sp else 28.sp
+    val fontWeight = if (isActive) FontWeight.W800 else FontWeight.W600
 
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .scale(scale)
             .tvButtonFocus(
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(12.dp),
                 focusedScale = 1.02f,
                 focusedBorderColor = TvColors.BorderFocused,
                 unfocusedBorderColor = Color.Transparent,
                 onClick = onClick,
             )
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (line.isGap) {
             Text(
-                text = "♪ ♪ ♪",
-                fontSize = 20.sp,
-                color = TvColors.TextMuted,
+                text = "♪  ♪  ♪",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White.copy(alpha = 0.35f),
                 fontFamily = TvSFProDisplay,
             )
         } else if (line.words.isNotEmpty() && isActive && syncState != null) {
-            // Word-level highlighting
-            Row(modifier = Modifier.fillMaxWidth()) {
+            // Word-level karaoke highlighting
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start,
+            ) {
                 line.words.forEachIndexed { wordIdx, word ->
                     val isWordActive = wordIdx == syncState.activeWordIndex
                     val isWordSung = wordIdx < syncState.activeWordIndex
@@ -229,10 +253,11 @@ private fun TvLyricLineItem(
                         fontWeight = fontWeight,
                         fontFamily = TvSFProDisplay,
                         color = when {
-                            isWordActive -> TvColors.AccentRed
+                            isWordActive -> Color.White
                             isWordSung -> Color.White
-                            else -> Color(0x99FFFFFF)
+                            else -> Color.White.copy(alpha = 0.55f)
                         },
+                        lineHeight = (fontSize.value * 1.3f).sp,
                     )
                 }
             }
@@ -242,8 +267,8 @@ private fun TvLyricLineItem(
                 fontSize = fontSize,
                 fontWeight = fontWeight,
                 fontFamily = TvSFProDisplay,
-                color = if (isActive) TvColors.AccentRed else textColor,
-                lineHeight = (fontSize.value * 1.35f).sp,
+                color = textColor,
+                lineHeight = (fontSize.value * 1.3f).sp,
             )
         }
     }
