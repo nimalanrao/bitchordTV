@@ -175,9 +175,8 @@ fun TvApp(
                                         activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
                                     },
                                     onNavigateToLocalMusic = {
-                                        // Open Local Music Detail
                                         activeDetail = DetailDestination(
-                                            "LOCAL",
+                                            "local:all",
                                             "Local Device Audio",
                                             "Audio files on device storage",
                                             null,
@@ -186,7 +185,7 @@ fun TvApp(
                                     },
                                     onNavigateToDownloads = {
                                         activeDetail = DetailDestination(
-                                            "DOWNLOADS",
+                                            "local:downloads",
                                             "Offline Downloads",
                                             "Downloaded high-quality tracks",
                                             null,
@@ -195,11 +194,11 @@ fun TvApp(
                                     },
                                     onNavigateToHistory = {
                                         activeDetail = DetailDestination(
-                                            "HISTORY",
+                                            "FEmusic_history",
                                             "Listening History",
                                             "Recently played tracks",
                                             null,
-                                            BrowseType.OTHER,
+                                            BrowseType.PLAYLIST,
                                         )
                                     },
                                     onNavigateToLiked = {
