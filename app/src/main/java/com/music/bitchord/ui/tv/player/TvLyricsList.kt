@@ -5,31 +5,24 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,10 +33,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.data.lyrics.LyricLine
@@ -60,7 +55,7 @@ import kotlinx.coroutines.launch
 
 /**
  * 1:1 Apple Music TV Lyrics List with smooth spring-physics auto-scroll
- * and active line scaling.
+ * and proper multi-line wrapping for word-level karaoke.
  */
 @Composable
 fun TvLyricsList(
@@ -238,29 +233,36 @@ private fun TvLyricLineItem(
                 fontFamily = TvSFProDisplay,
             )
         } else if (line.words.isNotEmpty() && isActive && syncState != null) {
-            // Word-level karaoke highlighting
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start,
-            ) {
+            // Word-level karaoke highlighting with automatic multi-line text wrapping!
+            val annotatedString = buildAnnotatedString {
                 line.words.forEachIndexed { wordIdx, word ->
                     val isWordActive = wordIdx == syncState.activeWordIndex
                     val isWordSung = wordIdx < syncState.activeWordIndex
 
-                    Text(
-                        text = "${word.text} ",
-                        fontSize = fontSize,
-                        fontWeight = fontWeight,
-                        fontFamily = TvSFProDisplay,
-                        color = when {
-                            isWordActive -> Color.White
-                            isWordSung -> Color.White
-                            else -> Color.White.copy(alpha = 0.55f)
-                        },
-                        lineHeight = (fontSize.value * 1.3f).sp,
-                    )
+                    val wordColor = when {
+                        isWordActive -> Color.White
+                        isWordSung -> Color.White
+                        else -> Color.White.copy(alpha = 0.50f)
+                    }
+
+                    withStyle(
+                        style = SpanStyle(
+                            color = wordColor,
+                            fontWeight = if (isWordActive || isWordSung) FontWeight.W900 else FontWeight.W600,
+                        ),
+                    ) {
+                        append("${word.text} ")
+                    }
                 }
             }
+
+            Text(
+                text = annotatedString,
+                fontSize = fontSize,
+                fontFamily = TvSFProDisplay,
+                lineHeight = (fontSize.value * 1.35f).sp,
+                modifier = Modifier.fillMaxWidth(),
+            )
         } else {
             Text(
                 text = line.text,
@@ -268,7 +270,8 @@ private fun TvLyricLineItem(
                 fontWeight = fontWeight,
                 fontFamily = TvSFProDisplay,
                 color = textColor,
-                lineHeight = (fontSize.value * 1.3f).sp,
+                lineHeight = (fontSize.value * 1.35f).sp,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }

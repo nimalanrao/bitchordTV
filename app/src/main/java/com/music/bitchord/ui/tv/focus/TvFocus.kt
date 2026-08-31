@@ -29,17 +29,17 @@ import com.music.bitchord.ui.tv.theme.TvColors
 import com.music.bitchord.ui.tv.theme.appleSpring
 
 /**
- * Standard TV card focus modifier with Apple spring animation.
+ * Standard TV card focus modifier with Apple smooth spring animation.
  * Applies a smooth spring scale animation (1.05x), rounded border highlight, and elevation
  * when the element receives D-pad focus.
  */
 fun Modifier.tvCardFocus(
-    shape: Shape = RoundedCornerShape(14.dp),
+    shape: Shape = RoundedCornerShape(16.dp),
     focusedScale: Float = 1.05f,
-    borderWidth: Dp = 2.5.dp,
-    focusedBorderColor: Color = TvColors.BorderFocused,
+    borderWidth: Dp = 2.dp,
+    focusedBorderColor: Color = Color.White,
     unfocusedBorderColor: Color = Color.Transparent,
-    elevation: Dp = 10.dp,
+    elevation: Dp = 12.dp,
     onClick: (() -> Unit)? = null,
 ): Modifier = composed {
     val interactionSource = remember { MutableInteractionSource() }
@@ -47,7 +47,7 @@ fun Modifier.tvCardFocus(
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) focusedScale else 1.0f,
-        animationSpec = appleSpring(AppleSpringPreset.Snappy),
+        animationSpec = appleSpring(AppleSpringPreset.Smooth),
         label = "tvCardFocusScale",
     )
 
@@ -79,13 +79,13 @@ fun Modifier.tvCardFocus(
 }
 
 /**
- * Standard TV button focus modifier with Apple snappy spring animation.
+ * Standard TV button focus modifier with Apple smooth spring animation.
  */
 fun Modifier.tvButtonFocus(
-    shape: Shape = RoundedCornerShape(10.dp),
-    focusedScale: Float = 1.04f,
-    focusedBorderColor: Color = TvColors.BorderFocused,
-    unfocusedBorderColor: Color = TvColors.BorderSubtle,
+    shape: Shape = RoundedCornerShape(12.dp),
+    focusedScale: Float = 1.03f,
+    focusedBorderColor: Color = Color.White,
+    unfocusedBorderColor: Color = Color.Transparent,
     onClick: (() -> Unit)? = null,
 ): Modifier = composed {
     val interactionSource = remember { MutableInteractionSource() }
@@ -93,7 +93,7 @@ fun Modifier.tvButtonFocus(
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) focusedScale else 1.0f,
-        animationSpec = appleSpring(AppleSpringPreset.Snappy),
+        animationSpec = appleSpring(AppleSpringPreset.Smooth),
         label = "tvButtonFocusScale",
     )
 
