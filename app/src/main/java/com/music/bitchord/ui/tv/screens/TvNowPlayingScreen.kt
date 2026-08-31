@@ -115,13 +115,13 @@ fun TvNowPlayingScreen(
     val lyrics by viewModel.lyrics.collectAsState()
     var sidePanel by remember { mutableStateOf(TvNowPlayingSidePanel.NONE) }
 
-    LaunchedEffect(song?.videoId) {
-        if (song != null && durationMs > 0) {
+    LaunchedEffect(song?.videoId, durationMs) {
+        if (song != null) {
             viewModel.loadLyrics(
                 videoId = song.videoId,
                 title = song.title,
                 artist = song.artist,
-                durationMs = durationMs,
+                durationMs = if (durationMs > 0) durationMs else 0L,
                 album = song.albumName,
             )
         }
