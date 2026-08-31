@@ -109,6 +109,7 @@ fun TvApp(
 
         // Dialog States
         var showAccountDialog by remember { mutableStateOf(false) }
+        var showRemoteDialog by remember { mutableStateOf(false) }
         var showDiscordDialog by remember { mutableStateOf(false) }
         var showScrobbleDialog by remember { mutableStateOf(false) }
         var showSourcesDialog by remember { mutableStateOf(false) }
@@ -117,6 +118,30 @@ fun TvApp(
         var showAboutDialog by remember { mutableStateOf(false) }
 
         val palette = TvThemeColors.current
+
+        // Connect Mobile Web Remote Server Actions
+        androidx.compose.runtime.DisposableEffect(mediaController, playerState) {
+            com.music.bitchord.ui.tv.auth.TvAuthServer.statusProvider = {
+                com.music.bitchord.ui.tv.auth.TvRemoteStatus(
+                    isPlaying = playerState.isPlaying,
+                    title = playerState.song?.title ?: "No Song Playing",
+                    artist = playerState.song?.artist ?: "BitChord TV",
+                    artworkUrl = playerState.song?.thumbnailUrl,
+                    currentPositionMs = playerState.currentPositionMs,
+                    durationMs = playerState.durationMs,
+                )
+            }
+            com.music.bitchord.ui.tv.auth.TvAuthServer.onPlayPauseAction = {
+                if (playerState.isPlaying) mediaController?.pause() else mediaController?.play()
+            }
+            com.music.bitchord.ui.tv.auth.TvAuthServer.onNextAction = { mediaController?.seekToNextMediaItem() }
+            com.music.bitchord.ui.tv.auth.TvAuthServer.onPreviousAction = { mediaController?.seekToPreviousMediaItem() }
+            com.music.bitchord.ui.tv.auth.TvAuthServer.onSeekAction = { ms -> mediaController?.seekTo(ms) }
+            com.music.bitchord.ui.tv.auth.TvAuthServer.onPlaySongAction = { song ->
+                mediaController?.playSongs(listOf(song), 0)
+            }
+            onDispose {}
+        }
 
         Box(
             modifier = modifier
@@ -236,6 +261,7 @@ fun TvApp(
                                     TvSettingsScreen(
                                         viewModel = viewModel,
                                         onOpenAccountDialog = { showAccountDialog = true },
+                                        onOpenRemoteDialog = { showRemoteDialog = true },
                                         onOpenDiscordDialog = { showDiscordDialog = true },
                                         onOpenScrobbleDialog = { showScrobbleDialog = true },
                                         onOpenSourcesDialog = { showSourcesDialog = true },
@@ -266,6 +292,9 @@ fun TvApp(
             // Dialog Overlays
             if (showAccountDialog) {
                 TvAccountDialog(viewModel = viewModel, onDismiss = { showAccountDialog = false })
+            }
+            if (showRemoteDialog) {
+                com.music.bitchord.ui.tv.dialogs.TvRemoteDialog(onDismiss = { showRemoteDialog = false })
             }
             if (showDiscordDialog) {
                 TvDiscordDialog(onDismiss = { showDiscordDialog = false })

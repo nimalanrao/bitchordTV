@@ -193,6 +193,13 @@ private fun TvShelfItemCard(
         title = item.title,
         subtitle = item.subtitle,
         artworkUrl = item.thumbnailUrl,
+        categoryLabel = when {
+            isTrack -> "Track"
+            isArtist -> "Artist"
+            item.browseId?.startsWith("MPRE") == true -> "New Release"
+            item.browseId?.startsWith("VL") == true -> "Made For You"
+            else -> "Featured"
+        },
         isCircle = isArtist,
         badge = when {
             isTrack -> "Song"

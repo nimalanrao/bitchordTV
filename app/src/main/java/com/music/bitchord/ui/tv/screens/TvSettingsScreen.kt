@@ -66,6 +66,7 @@ import com.music.bitchord.ui.tv.theme.appleSpring
 fun TvSettingsScreen(
     viewModel: MainViewModel,
     onOpenAccountDialog: () -> Unit,
+    onOpenRemoteDialog: () -> Unit,
     onOpenDiscordDialog: () -> Unit,
     onOpenScrobbleDialog: () -> Unit,
     onOpenSourcesDialog: () -> Unit,
@@ -289,6 +290,16 @@ fun TvSettingsScreen(
                 item {
                     Spacer(modifier = Modifier.height(14.dp))
                     TvAppleSettingsSectionHeader(title = "ACCOUNT & INTEGRATIONS")
+                }
+                item {
+                    TvAppleSettingsPillRow(
+                        title = "Mobile Web Remote",
+                        value = "Pair Phone",
+                        hasChevron = true,
+                        description = "Scan QR code to control playback, search songs, and use the D-pad remote from your mobile browser.",
+                        onFocusChanged = { activeDescription = it },
+                        onClick = onOpenRemoteDialog,
+                    )
                 }
                 item {
                     TvAppleSettingsPillRow(

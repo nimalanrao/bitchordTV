@@ -114,7 +114,7 @@ fun TvLibraryScreen(
                     item {
                         TvQuickHubCard(
                             title = "Local Music",
-                            subtitle = "Device storage",
+                            subtitle = "Device & USB Drives",
                             icon = Icons.Default.Folder,
                             accentColor = TvColors.AccentPurple,
                             onClick = onNavigateToLocalMusic,

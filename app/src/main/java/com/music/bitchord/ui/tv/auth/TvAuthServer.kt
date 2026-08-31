@@ -1,8 +1,15 @@
 package com.music.bitchord.ui.tv.auth
 
+import android.content.Context
 import android.util.Log
+import com.music.bitchord.data.YtMusicRepository
+import com.music.bitchord.data.model.Song
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintWriter
@@ -13,6 +20,15 @@ import java.net.Socket
 import java.net.URLDecoder
 import java.util.concurrent.atomic.AtomicBoolean
 
+data class TvRemoteStatus(
+    val isPlaying: Boolean,
+    val title: String,
+    val artist: String,
+    val artworkUrl: String?,
+    val currentPositionMs: Long,
+    val durationMs: Long,
+)
+
 object TvAuthServer {
 
     private const val TAG = "TvAuthServer"
@@ -20,6 +36,16 @@ object TvAuthServer {
 
     private var serverSocket: ServerSocket? = null
     private val isRunning = AtomicBoolean(false)
+    private val scope = CoroutineScope(Dispatchers.IO)
+
+    // Remote callbacks
+    var statusProvider: (() -> TvRemoteStatus)? = null
+    var onPlayPauseAction: (() -> Unit)? = null
+    var onNextAction: (() -> Unit)? = null
+    var onPreviousAction: (() -> Unit)? = null
+    var onSeekAction: ((Long) -> Unit)? = null
+    var onPlaySongAction: ((Song) -> Unit)? = null
+    var onKeyAction: ((String) -> Unit)? = null
 
     fun getLocalIpAddress(): String? {
         try {
@@ -45,7 +71,7 @@ object TvAuthServer {
     }
 
     suspend fun start(
-        onCookieReceived: (String) -> Unit,
+        onCookieReceived: ((String) -> Unit)? = null,
     ): Pair<Int, String>? = withContext(Dispatchers.IO) {
         stop()
 
@@ -54,7 +80,7 @@ object TvAuthServer {
             val socket = try {
                 ServerSocket(DEFAULT_PORT)
             } catch (_: Exception) {
-                ServerSocket(0) // dynamic fallback port
+                ServerSocket(0)
             }
             serverSocket = socket
             isRunning.set(true)
@@ -73,7 +99,7 @@ object TvAuthServer {
 
             Pair(port, ip)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start TV auth server", e)
+            Log.e(TAG, "Failed to start TV server", e)
             null
         }
     }
@@ -86,7 +112,7 @@ object TvAuthServer {
         serverSocket = null
     }
 
-    private fun handleClient(client: Socket, onCookieReceived: (String) -> Unit) {
+    private fun handleClient(client: Socket, onCookieReceived: ((String) -> Unit)?) {
         Thread {
             try {
                 val reader = BufferedReader(InputStreamReader(client.getInputStream()))
@@ -95,7 +121,9 @@ object TvAuthServer {
                 val requestLine = reader.readLine() ?: return@Thread
                 val parts = requestLine.split(" ")
                 val method = parts.getOrNull(0) ?: "GET"
-                val path = parts.getOrNull(1) ?: "/"
+                val rawPath = parts.getOrNull(1) ?: "/"
+                val path = rawPath.substringBefore("?")
+                val query = if (rawPath.contains("?")) rawPath.substringAfter("?") else ""
 
                 var contentLength = 0
                 var line: String?
@@ -106,7 +134,8 @@ object TvAuthServer {
                     }
                 }
 
-                if (method == "POST" && path == "/submit") {
+                var requestBody = ""
+                if (contentLength > 0) {
                     val bodyChars = CharArray(contentLength)
                     var read = 0
                     while (read < contentLength) {
@@ -114,254 +143,370 @@ object TvAuthServer {
                         if (count <= 0) break
                         read += count
                     }
-                    val body = String(bodyChars)
-                    val cookieValue = parseCookieFromBody(body)
-
-                    if (!cookieValue.isNullOrBlank()) {
-                        onCookieReceived(cookieValue)
-                        sendHtmlResponse(writer, SUCCESS_HTML)
-                    } else {
-                        sendHtmlResponse(writer, ERROR_HTML)
-                    }
-                } else {
-                    sendHtmlResponse(writer, LOGIN_PAGE_HTML)
+                    requestBody = String(bodyChars)
                 }
 
-                client.close()
+                when {
+                    // 1. API: Get Current Status
+                    path == "/api/status" -> {
+                        val status = statusProvider?.invoke() ?: TvRemoteStatus(false, "No Song Playing", "BitChord TV", null, 0, 0)
+                        val json = JSONObject().apply {
+                            put("isPlaying", status.isPlaying)
+                            put("title", status.title)
+                            put("artist", status.artist)
+                            put("artworkUrl", status.artworkUrl ?: "")
+                            put("currentPositionMs", status.currentPositionMs)
+                            put("durationMs", status.durationMs)
+                        }
+                        sendJsonResponse(writer, json.toString())
+                    }
+
+                    // 2. API: Control Playback Actions
+                    path == "/api/action" -> {
+                        val action = if (method == "POST") {
+                            parseFormParam(requestBody, "action") ?: parseQueryParam(query, "action")
+                        } else {
+                            parseQueryParam(query, "action")
+                        }
+
+                        when (action) {
+                            "play", "pause", "play_pause" -> onPlayPauseAction?.invoke()
+                            "next" -> onNextAction?.invoke()
+                            "prev", "previous" -> onPreviousAction?.invoke()
+                            "seek" -> {
+                                val ms = (parseFormParam(requestBody, "ms") ?: parseQueryParam(query, "ms"))?.toLongOrNull() ?: 0L
+                                onSeekAction?.invoke(ms)
+                            }
+                            "key_up", "key_down", "key_left", "key_right", "key_select", "key_back" -> {
+                                onKeyAction?.invoke(action)
+                            }
+                        }
+                        sendJsonResponse(writer, """{"success":true}""")
+                    }
+
+                    // 3. API: Search Music from Phone
+                    path == "/api/search" -> {
+                        val q = parseQueryParam(query, "q") ?: ""
+                        if (q.isBlank()) {
+                            sendJsonResponse(writer, "[]")
+                        } else {
+                            scope.launch {
+                                val results = YtMusicRepository.search(q, null).getOrDefault(emptyList())
+                                val arr = JSONArray()
+                                results.take(15).forEach { item ->
+                                    val itemObj = JSONObject().apply {
+                                        put("videoId", item.videoId ?: "")
+                                        put("title", item.title)
+                                        put("subtitle", item.subtitle ?: "")
+                                        put("thumbnailUrl", item.thumbnailUrl ?: "")
+                                    }
+                                    arr.put(itemObj)
+                                }
+                                sendJsonResponse(writer, arr.toString())
+                            }
+                        }
+                    }
+
+                    // 4. API: Play Song from Phone Search
+                    path == "/api/play" -> {
+                        val videoId = parseFormParam(requestBody, "videoId") ?: parseQueryParam(query, "videoId")
+                        val title = parseFormParam(requestBody, "title") ?: parseQueryParam(query, "title") ?: "Track"
+                        val artist = parseFormParam(requestBody, "artist") ?: parseQueryParam(query, "artist") ?: ""
+                        val thumb = parseFormParam(requestBody, "thumbnailUrl") ?: parseQueryParam(query, "thumbnailUrl")
+
+                        if (!videoId.isNullOrBlank()) {
+                            val song = Song(videoId = videoId, title = title, artist = artist, thumbnailUrl = thumb)
+                            onPlaySongAction?.invoke(song)
+                        }
+                        sendJsonResponse(writer, """{"success":true}""")
+                    }
+
+                    // 5. Auth Cookie Submission
+                    path == "/submit" && method == "POST" -> {
+                        val cookieValue = parseCookieFromBody(requestBody)
+                        if (!cookieValue.isNullOrBlank()) {
+                            onCookieReceived?.invoke(cookieValue)
+                            sendHtmlResponse(writer, getSuccessHtml())
+                        } else {
+                            sendHtmlResponse(writer, getAuthHtml(error = "No cookie detected. Please follow the instructions."))
+                        }
+                    }
+
+                    // 6. Mobile Web Remote Control Page (/remote)
+                    path == "/remote" -> {
+                        sendHtmlResponse(writer, getRemoteControlHtml())
+                    }
+
+                    // 7. Default Landing & Auth Page (/)
+                    else -> {
+                        sendHtmlResponse(writer, getAuthHtml())
+                    }
+                }
             } catch (e: Exception) {
-                Log.w(TAG, "Error handling client", e)
+                Log.w(TAG, "Client error in TvAuthServer", e)
+            } finally {
+                try { client.close() } catch (_: Exception) {}
             }
         }.start()
+    }
+
+    private fun sendJsonResponse(writer: PrintWriter, json: String) {
+        writer.print("HTTP/1.1 200 OK\r\n")
+        writer.print("Content-Type: application/json; charset=utf-8\r\n")
+        writer.print("Access-Control-Allow-Origin: *\r\n")
+        writer.print("Content-Length: ${json.toByteArray().size}\r\n")
+        writer.print("\r\n")
+        writer.print(json)
+        writer.flush()
+    }
+
+    private fun sendHtmlResponse(writer: PrintWriter, html: String) {
+        writer.print("HTTP/1.1 200 OK\r\n")
+        writer.print("Content-Type: text/html; charset=utf-8\r\n")
+        writer.print("Content-Length: ${html.toByteArray().size}\r\n")
+        writer.print("\r\n")
+        writer.print(html)
+        writer.flush()
+    }
+
+    private fun parseFormParam(body: String, param: String): String? {
+        val pairs = body.split("&")
+        for (pair in pairs) {
+            val idx = pair.indexOf("=")
+            if (idx > 0) {
+                val key = URLDecoder.decode(pair.substring(0, idx), "UTF-8")
+                if (key == param) {
+                    return URLDecoder.decode(pair.substring(idx + 1), "UTF-8")
+                }
+            }
+        }
+        return null
+    }
+
+    private fun parseQueryParam(query: String, param: String): String? {
+        return parseFormParam(query, param)
     }
 
     private fun parseCookieFromBody(body: String): String? {
         val pairs = body.split("&")
         for (pair in pairs) {
-            val kv = pair.split("=", limit = 2)
-            if (kv.size == 2 && kv[0] == "cookie") {
-                return URLDecoder.decode(kv[1], "UTF-8").trim()
+            val idx = pair.indexOf("=")
+            if (idx > 0) {
+                val key = URLDecoder.decode(pair.substring(0, idx), "UTF-8")
+                val value = URLDecoder.decode(pair.substring(idx + 1), "UTF-8").trim()
+                if (key == "cookie" && value.isNotBlank()) {
+                    return value
+                }
             }
         }
-        return if (body.isNotBlank() && !body.contains("=")) body.trim() else null
+        return null
     }
 
-    private fun sendHtmlResponse(writer: PrintWriter, html: String) {
-        writer.print("HTTP/1.1 200 OK\r\n")
-        writer.print("Content-Type: text/html; charset=UTF-8\r\n")
-        writer.print("Content-Length: ${html.toByteArray(Charsets.UTF_8).size}\r\n")
-        writer.print("Connection: close\r\n\r\n")
-        writer.print(html)
-        writer.flush()
-    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // HTML Templates: Apple TV Mobile Remote & Google Sign-In Pages
+    // ─────────────────────────────────────────────────────────────────────────
 
-    private const val LOGIN_PAGE_HTML = """<!DOCTYPE html>
+    private fun getRemoteControlHtml(): String = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BitChord TV • Mobile Remote</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { background: #08080B; color: #FFF; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; min-height: 100vh; padding: 18px; display: flex; flex-direction: column; align-items: center; }
+.header { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 400px; padding: 10px 0 16px; }
+.logo-badge { width: 34px; height: 34px; border-radius: 50%; background: #FA2D48; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.header h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
+.card { width: 100%; max-width: 400px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 24px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(20px); }
+.now-playing { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
+.art { width: 68px; height: 68px; border-radius: 14px; background: #222; object-fit: cover; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+.info { flex: 1; min-width: 0; }
+.title { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.artist { font-size: 13px; color: #A0A0AB; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.progress-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; position: relative; margin: 12px 0 6px; cursor: pointer; }
+.progress-fill { height: 100%; background: #FA2D48; border-radius: 3px; width: 0%; transition: width 0.3s linear; }
+.time-row { display: flex; justify-content: space-between; font-size: 11px; color: #888; }
+.transport-row { display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 14px; }
+.btn { border: none; outline: none; background: rgba(255,255,255,0.15); color: #FFF; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; active { transform: scale(0.92); } }
+.btn-play { width: 64px; height: 64px; background: #FA2D48; font-size: 26px; box-shadow: 0 4px 18px rgba(250,45,72,0.4); }
+.dpad-card { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 16px; }
+.dpad-row { display: flex; gap: 8px; }
+.dpad-btn { width: 72px; height: 54px; border-radius: 14px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #FFF; font-size: 16px; font-weight: bold; cursor: pointer; }
+.dpad-ok { background: #FA2D48; border-color: #FA2D48; }
+.search-card { width: 100%; max-width: 400px; }
+.search-input { width: 100%; height: 44px; border-radius: 14px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); color: #FFF; padding: 0 14px; font-size: 15px; outline: none; }
+.search-results { margin-top: 10px; max-height: 220px; overflow-y: auto; }
+.result-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px; cursor: pointer; margin-bottom: 4px; }
+.result-item:hover { background: rgba(255,255,255,0.1); }
+.result-thumb { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+.result-text { flex: 1; min-width: 0; }
+.result-title { font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-sub { font-size: 11px; color: #888; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo-badge">♪</div>
+  <h1>BitChord TV Remote</h1>
+</div>
+
+<div class="card">
+  <div class="now-playing">
+    <img id="trackArt" class="art" src="" style="display:none;" />
+    <div class="info">
+      <div id="trackTitle" class="title">Loading TV...</div>
+      <div id="trackArtist" class="artist">Connecting to BitChord TV</div>
+    </div>
+  </div>
+  <div class="progress-bar" id="pBar" onclick="handleSeek(event)">
+    <div class="progress-fill" id="pFill"></div>
+  </div>
+  <div class="time-row">
+    <span id="tElapsed">0:00</span>
+    <span id="tRemain">-0:00</span>
+  </div>
+  <div class="transport-row">
+    <button class="btn" onclick="sendAction('prev')">⏮</button>
+    <button class="btn btn-play" id="playBtn" onclick="sendAction('play_pause')">▶</button>
+    <button class="btn" onclick="sendAction('next')">⏭</button>
+  </div>
+</div>
+
+<div class="card dpad-card">
+  <div class="dpad-row"><button class="dpad-btn" onclick="sendAction('key_up')">▲</button></div>
+  <div class="dpad-row">
+    <button class="dpad-btn" onclick="sendAction('key_left')">◀</button>
+    <button class="dpad-btn dpad-ok" onclick="sendAction('key_select')">OK</button>
+    <button class="dpad-btn" onclick="sendAction('key_right')">▶</button>
+  </div>
+  <div class="dpad-row"><button class="dpad-btn" onclick="sendAction('key_down')">▼</button></div>
+  <div class="dpad-row" style="margin-top: 6px;">
+    <button class="dpad-btn" style="width: 110px;" onclick="sendAction('key_back')">Back</button>
+  </div>
+</div>
+
+<div class="card search-card">
+  <input type="text" class="search-input" id="sQuery" placeholder="Search song to play on TV..." onkeydown="if(event.key==='Enter')searchMusic()" />
+  <div class="search-results" id="sResults"></div>
+</div>
+
+<script>
+let dur = 0;
+function fmtTime(ms) {
+  if (ms <= 0) return "0:00";
+  let s = Math.floor(ms / 1000), m = Math.floor(s / 60), r = s % 60;
+  return m + ":" + (r < 10 ? "0" : "") + r;
+}
+function updateStatus() {
+  fetch('/api/status').then(r => r.json()).then(data => {
+    document.getElementById('trackTitle').innerText = data.title || "No Song Playing";
+    document.getElementById('trackArtist').innerText = data.artist || "BitChord TV";
+    let art = document.getElementById('trackArt');
+    if (data.artworkUrl) { art.src = data.artworkUrl; art.style.display = 'block'; } else { art.style.display = 'none'; }
+    document.getElementById('playBtn').innerText = data.isPlaying ? '❚❚' : '▶';
+    dur = data.durationMs || 1;
+    let pos = data.currentPositionMs || 0;
+    let pct = Math.min(100, Math.max(0, (pos / dur) * 100));
+    document.getElementById('pFill').style.width = pct + '%';
+    document.getElementById('tElapsed').innerText = fmtTime(pos);
+    document.getElementById('tRemain').innerText = '-' + fmtTime(Math.max(0, dur - pos));
+  }).catch(() => {});
+}
+function sendAction(act, extra = '') {
+  fetch('/api/action?action=' + act + extra, { method: 'POST' });
+  setTimeout(updateStatus, 150);
+}
+function handleSeek(e) {
+  let rect = document.getElementById('pBar').getBoundingClientRect();
+  let pct = (e.clientX - rect.left) / rect.width;
+  let targetMs = Math.floor(pct * dur);
+  sendAction('seek', '&ms=' + targetMs);
+}
+function searchMusic() {
+  let q = document.getElementById('sQuery').value;
+  if (!q) return;
+  fetch('/api/search?q=' + encodeURIComponent(q)).then(r => r.json()).then(items => {
+    let container = document.getElementById('sResults');
+    container.innerHTML = '';
+    items.forEach(item => {
+      let div = document.createElement('div');
+      div.className = 'result-item';
+      div.innerHTML = '<img class="result-thumb" src="' + (item.thumbnailUrl || '') + '" /><div class="result-text"><div class="result-title">' + item.title + '</div><div class="result-sub">' + item.subtitle + '</div></div>';
+      div.onclick = () => {
+        fetch('/api/play?videoId=' + encodeURIComponent(item.videoId) + '&title=' + encodeURIComponent(item.title) + '&artist=' + encodeURIComponent(item.subtitle) + '&thumbnailUrl=' + encodeURIComponent(item.thumbnailUrl), { method: 'POST' });
+        container.innerHTML = '<div style="padding:10px;text-align:center;color:#00E5FF;">Playing ' + item.title + ' on TV!</div>';
+      };
+      container.appendChild(div);
+    });
+  });
+}
+setInterval(updateStatus, 1200);
+updateStatus();
+</script>
+</body>
+</html>
+""".trimIndent()
+
+    private fun getAuthHtml(error: String? = null): String = """
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BitChord TV • Sign In</title>
+<title>BitChord TV • Connect</title>
 <style>
-  body {
-    background-color: #08080B;
-    color: #F2F2F7;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-    margin: 0;
-    padding: 24px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    box-sizing: border-box;
-  }
-  .card {
-    background: #14141B;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 28px;
-    max-width: 480px;
-    width: 100%;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.6);
-  }
-  .header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 16px;
-  }
-  .logo-badge {
-    background: #FA2D48;
-    color: white;
-    font-weight: 800;
-    font-size: 14px;
-    padding: 6px 12px;
-    border-radius: 8px;
-    margin-right: 12px;
-  }
-  h1 {
-    font-size: 22px;
-    margin: 0;
-    font-weight: 700;
-  }
-  p {
-    color: #8E8E93;
-    font-size: 14px;
-    line-height: 1.5;
-    margin-top: 6px;
-    margin-bottom: 20px;
-  }
-  textarea {
-    width: 100%;
-    height: 140px;
-    background: #08080B;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
-    padding: 14px;
-    color: #FFFFFF;
-    font-family: monospace;
-    font-size: 13px;
-    resize: none;
-    box-sizing: border-box;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  textarea:focus {
-    border-color: #FA2D48;
-  }
-  button {
-    width: 100%;
-    background: #FA2D48;
-    color: white;
-    border: none;
-    border-radius: 12px;
-    padding: 16px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 16px;
-    transition: transform 0.1s, background-color 0.2s;
-  }
-  button:hover {
-    background: #E0203B;
-  }
-  button:active {
-    transform: scale(0.98);
-  }
-  .info-box {
-    margin-top: 20px;
-    padding: 12px;
-    border-radius: 10px;
-    background: rgba(250, 45, 72, 0.1);
-    border-left: 4px solid #FA2D48;
-    font-size: 12px;
-    color: #C7C7CC;
-  }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #08080B; color: #FFF; font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; }
+.card { width: 100%; max-width: 440px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 24px; padding: 24px; margin-bottom: 20px; backdrop-filter: blur(20px); }
+.btn-primary { width: 100%; height: 50px; background: #FA2D48; color: #FFF; border: none; border-radius: 14px; font-size: 16px; font-weight: bold; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; margin-top: 12px; }
+.btn-secondary { width: 100%; height: 48px; background: rgba(255,255,255,0.12); color: #FFF; border: none; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; margin-top: 10px; }
+textarea { width: 100%; height: 100px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; color: #FFF; padding: 12px; font-size: 13px; font-family: monospace; margin-top: 10px; outline: none; }
 </style>
 </head>
 <body>
+<div class="card" style="text-align: center;">
+  <div style="width: 50px; height: 50px; border-radius: 50%; background: #FA2D48; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;">♪</div>
+  <h1 style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">BitChord TV Connect</h1>
+  <p style="font-size: 14px; color: #A0A0AB;">Control playback or link your YouTube Music account.</p>
+  <a href="/remote" class="btn-primary">📱 Open TV Remote Control</a>
+</div>
+
 <div class="card">
-  <div class="header">
-    <span class="logo-badge">TV CONNECT</span>
-    <h1>Sign In to BitChord TV</h1>
-  </div>
-  <p>Paste your YouTube Music session cookie or login token below to authenticate your TV instance instantly without on-screen typing.</p>
+  <h2 style="font-size: 17px; font-weight: bold; margin-bottom: 8px;">Link YouTube Music Account</h2>
+  <p style="font-size: 13px; color: #AAA; line-height: 1.4;">Paste your YouTube Music session cookie or token below to sign in on TV instantly:</p>
+  ${if (error != null) "<div style='color:#FF375F;font-size:13px;margin-top:8px;'>$error</div>" else ""}
   <form action="/submit" method="POST">
-    <textarea name="cookie" placeholder="Paste SAPISID / HSID / SID cookie string here..." required></textarea>
-    <button type="submit">Authorize TV</button>
+    <textarea name="cookie" placeholder="Paste SAPISID / Cookie string here..."></textarea>
+    <button type="submit" class="btn-secondary">Sign In on TV</button>
   </form>
-  <div class="info-box">
-    🔒 <strong>Direct Local Connection:</strong> Your credentials are sent directly over your local Wi-Fi to your TV only and never touch any third-party cloud servers.
-  </div>
 </div>
 </body>
-</html>"""
+</html>
+""".trimIndent()
 
-    private const val SUCCESS_HTML = """<!DOCTYPE html>
+    private fun getSuccessHtml(): String = """
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Connected • BitChord TV</title>
+<title>BitChord TV • Connected</title>
 <style>
-  body {
-    background-color: #08080B;
-    color: #F2F2F7;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
-    margin: 0;
-    padding: 24px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-  }
-  .card {
-    background: #14141B;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 36px 28px;
-    max-width: 420px;
-    width: 100%;
-    text-align: center;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.6);
-  }
-  .icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-  }
-  h1 {
-    font-size: 24px;
-    color: #30D158;
-    margin: 0 0 10px 0;
-  }
-  p {
-    color: #8E8E93;
-    font-size: 15px;
-    line-height: 1.5;
-    margin: 0;
-  }
+body { background: #08080B; color: #FFF; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; text-align: center; }
+.card { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 24px; padding: 32px; max-width: 380px; }
+.btn { display: inline-block; background: #FA2D48; color: #FFF; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: bold; margin-top: 18px; }
 </style>
 </head>
 <body>
 <div class="card">
-  <div class="icon">✨</div>
-  <h1>TV Authenticated!</h1>
-  <p>Your account was successfully linked to your TV. You can close this browser tab and enjoy your music on BitChord TV!</p>
+  <div style="font-size: 48px; margin-bottom: 12px;">✅</div>
+  <h1 style="font-size: 22px; font-weight: bold; margin-bottom: 8px;">Paired Successfully!</h1>
+  <p style="font-size: 14px; color: #AAA;">Your BitChord TV is now connected. You can now use the mobile remote to control playback.</p>
+  <a href="/remote" class="btn">📱 Open TV Remote</a>
 </div>
 </body>
-</html>"""
-
-    private const val ERROR_HTML = """<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Error • BitChord TV</title>
-<style>
-  body {
-    background-color: #08080B;
-    color: #F2F2F7;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-  }
-  .card {
-    background: #14141B;
-    border-radius: 20px;
-    padding: 30px;
-    max-width: 400px;
-    text-align: center;
-  }
-  h1 { color: #FF453A; margin: 0 0 10px 0; }
-  p { color: #8E8E93; font-size: 14px; }
-  a { color: #FA2D48; text-decoration: none; font-weight: bold; }
-</style>
-</head>
-<body>
-<div class="card">
-  <h1>Empty Cookie</h1>
-  <p>No cookie data was provided. Please go back and paste a valid cookie string.</p>
-  <p><a href="/">← Try Again</a></p>
-</div>
-</body>
-</html>"""
+</html>
+""".trimIndent()
 }

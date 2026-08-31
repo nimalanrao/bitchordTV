@@ -1,5 +1,9 @@
 package com.music.bitchord.ui.tv.screens
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,7 +28,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -78,6 +84,19 @@ fun TvDetailScreen(
     val detailStack by viewModel.detailStack.collectAsState()
     val page = detailStack.lastOrNull { it.browseId == browseId }
 
+    // Storage permission launcher for scanning device audio & USB pendrives
+    val permissionsToRequest = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        arrayOf(Manifest.permission.READ_MEDIA_AUDIO)
+    } else {
+        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) {
+        viewModel.openDetail(browseId, initialTitle, initialSubtitle, initialThumbnailUrl, type)
+    }
+
     LaunchedEffect(browseId) {
         if (page == null) {
             viewModel.openDetail(browseId, initialTitle, initialSubtitle, initialThumbnailUrl, type)
@@ -94,6 +113,8 @@ fun TvDetailScreen(
     } else {
         TvDetailContent(
             page = page,
+            onRequestStoragePermission = { permissionLauncher.launch(permissionsToRequest) },
+            onRetry = { viewModel.openDetail(browseId, initialTitle, initialSubtitle, initialThumbnailUrl, type) },
             onPlaySongAt = { songs, index ->
                 mediaController?.playSongs(songs, index)
                 onNavigateToNowPlaying()
@@ -112,6 +133,8 @@ fun TvDetailScreen(
 @Composable
 private fun TvDetailContent(
     page: DetailPage,
+    onRequestStoragePermission: () -> Unit,
+    onRetry: () -> Unit,
     onPlaySongAt: (List<Song>, Int) -> Unit,
     onShufflePlay: (List<Song>) -> Unit,
     modifier: Modifier = Modifier,
@@ -127,7 +150,7 @@ private fun TvDetailContent(
             .padding(
                 start = TvDimensions.SafeMarginHorizontal,
                 end = TvDimensions.SafeMarginHorizontal,
-                top = TvDimensions.SafeMarginVertical,
+                top = 16.dp,
                 bottom = 40.dp,
             ),
         horizontalArrangement = Arrangement.spacedBy(36.dp),
@@ -141,8 +164,8 @@ private fun TvDetailContent(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1.0f)
-                    .clip(RoundedCornerShape(18.dp))
+                    .aspectRatio(1f)
+                    .clip(if (page.type == BrowseType.ARTIST) CircleShape else RoundedCornerShape(18.dp))
                     .background(TvColors.SurfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
@@ -159,36 +182,27 @@ private fun TvDetailContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             Text(
                 text = page.title,
                 fontSize = 24.sp,
-                fontWeight = FontWeight.W800,
+                fontWeight = FontWeight.Bold,
                 fontFamily = TvSFProDisplay,
                 color = TvColors.TextPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = page.subtitle,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.W500,
-                fontFamily = TvSFProDisplay,
-                color = TvColors.TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-
-            if (songs.isNotEmpty()) {
+            if (!page.subtitle.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${songs.size} tracks",
-                    fontSize = 13.sp,
+                    text = page.subtitle,
+                    fontSize = 14.sp,
                     fontFamily = TvSFProDisplay,
-                    color = TvColors.TextMuted,
+                    color = TvColors.TextSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
@@ -196,7 +210,7 @@ private fun TvDetailContent(
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TvButton(
-                    text = "Play",
+                    text = "Play All",
                     icon = Icons.Default.PlayArrow,
                     isPrimary = true,
                     enabled = songs.isNotEmpty(),
@@ -213,7 +227,7 @@ private fun TvDetailContent(
             }
         }
 
-        // Right Pane: Track List
+        // Right Pane: Track List / Permission State
         Column(
             modifier = Modifier
                 .weight(0.62f)
@@ -229,16 +243,55 @@ private fun TvDetailContent(
                     }
                 }
                 is UiState.Error -> {
-                    TvErrorState(
-                        message = s.message,
-                        onRetry = { },
-                    )
+                    if (s.message.contains("permission", ignoreCase = true)) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Folder,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(48.dp),
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = "Storage & USB Permission Required",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = TvSFProDisplay,
+                                color = Color.White,
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Allow storage permission to scan and play music from internal storage and attached USB pendrives.",
+                                fontSize = 14.sp,
+                                fontFamily = TvSFProDisplay,
+                                color = TvColors.TextSecondary,
+                                modifier = Modifier.fillMaxWidth(0.7f),
+                            )
+                            Spacer(modifier = Modifier.height(20.dp))
+                            TvButton(
+                                text = "Grant Storage Permission",
+                                isPrimary = true,
+                                onClick = onRequestStoragePermission,
+                            )
+                        }
+                    } else {
+                        TvErrorState(
+                            message = s.message,
+                            onRetry = onRetry,
+                        )
+                    }
                 }
                 is UiState.Success -> {
                     if (s.data.isEmpty()) {
                         TvEmptyState(
                             title = "No tracks available",
-                            message = "This collection does not contain any playable tracks.",
+                            message = "This collection does not contain any playable tracks. Connect a USB drive or download music to listen offline.",
                         )
                     } else {
                         LazyColumn(
@@ -293,12 +346,12 @@ private fun TvTrackRow(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            text = "$index",
+            text = index.toString(),
+            color = if (isFocused) TvColors.AccentRed else TvColors.TextMuted,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = TvSFProDisplay,
-            color = if (isFocused) TvColors.AccentRed else TvColors.TextMuted,
-            modifier = Modifier.width(28.dp),
+            modifier = Modifier.width(24.dp),
         )
 
         Box(
@@ -318,31 +371,25 @@ private fun TvTrackRow(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    tint = TvColors.TextMuted,
-                    modifier = Modifier.size(20.dp),
-                )
             }
         }
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = song.title,
+                color = if (isFocused) TvColors.AccentRed else TvColors.TextPrimary,
                 fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.W600,
                 fontFamily = TvSFProDisplay,
-                color = TvColors.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+
             Text(
                 text = song.artist,
-                fontSize = 13.sp,
-                fontFamily = TvSFProDisplay,
                 color = TvColors.TextSecondary,
+                fontSize = 12.sp,
+                fontFamily = TvSFProDisplay,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -351,9 +398,9 @@ private fun TvTrackRow(
         if (!song.durationText.isNullOrBlank()) {
             Text(
                 text = song.durationText,
+                color = TvColors.TextMuted,
                 fontSize = 13.sp,
                 fontFamily = TvSFProDisplay,
-                color = TvColors.TextMuted,
             )
         }
     }

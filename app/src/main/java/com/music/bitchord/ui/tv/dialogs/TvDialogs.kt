@@ -797,3 +797,96 @@ fun TvNicknameDialog(
         }
     }
 }
+
+/**
+ * Mobile Web Remote Pairing Dialog.
+ * Shows a QR code for http://[tv-ip]:[port]/remote so users can control the TV from their phone.
+ */
+@Composable
+fun TvRemoteDialog(
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var remoteUrl by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    DisposableEffect(Unit) {
+        scope.launch {
+            val serverInfo = TvAuthServer.start()
+            if (serverInfo != null) {
+                val (port, ip) = serverInfo
+                remoteUrl = "http://$ip:$port/remote"
+            }
+        }
+        onDispose {}
+    }
+
+    TvDialog(
+        title = "Mobile Web Remote",
+        onDismissRequest = onDismiss,
+        modifier = modifier,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (remoteUrl != null) {
+                    TvQrCodeView(
+                        content = remoteUrl!!,
+                        size = 180.dp,
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(180.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(TvColors.SurfaceVariant),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "Starting Remote Server...",
+                            color = TvColors.TextSecondary,
+                            fontSize = 12.sp,
+                            fontFamily = TvSFProDisplay,
+                        )
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "Control BitChord TV from Phone",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = TvSFProDisplay,
+                        color = TvColors.TextPrimary,
+                    )
+
+                    Text(
+                        text = "1. Connect phone to same Wi-Fi\n2. Scan the QR code or visit:\n   ${remoteUrl ?: "Waiting for network..."}\n3. Play/pause, seek, search YouTube Music, and use the D-pad remote directly on your phone!",
+                        fontSize = 13.sp,
+                        fontFamily = TvSFProDisplay,
+                        color = TvColors.TextSecondary,
+                        lineHeight = 18.sp,
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TvButton(
+                    text = "Close",
+                    isPrimary = true,
+                    onClick = onDismiss,
+                )
+            }
+        }
+    }
+}
+

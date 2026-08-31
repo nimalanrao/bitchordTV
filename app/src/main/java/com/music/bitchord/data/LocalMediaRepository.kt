@@ -142,86 +142,134 @@ object LocalMediaRepository {
         takeUnless { it.isNullOrBlank() || it == "<unknown>" }
 
     /**
-     * Queries MediaStore for all audio files available on the device.
+     * Queries MediaStore and directly scans internal storage + all connected USB drives / pendrives.
      */
     suspend fun getLocalMusic(context: Context): List<Song> = withContext(Dispatchers.IO) {
-        if (!hasStoragePermission(context)) return@withContext emptyList()
-
         val songs = mutableListOf<Song>()
-        // This scan runs over every audio file on the device, which includes
-        // whatever this app has downloaded into Music/BitChord alongside
-        // everything else — but by content URI, the only thing MediaStore
-        // offers here, that download is indistinguishable from a file the
-        // user copied on by hand. Reversing [Downloads.saved] hands a
-        // downloaded track its real YouTube id back, which is what lets
-        // PlaybackTracker recognise it as a video worth registering a play
-        // for — a content URI fails its id check on purpose, since most rows
-        // here really are just local files with nothing to sync.
+        val knownPaths = mutableSetOf<String>()
+
         val videoIdByUri = Downloads.saved.value.entries.associate { (id, uri) -> uri to id }
-        val projection = arrayOf(
-            MediaStore.Audio.Media._ID,
-            MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.ARTIST,
-            MediaStore.Audio.Media.ALBUM,
-            MediaStore.Audio.Media.ALBUM_ID,
-            MediaStore.Audio.Media.DURATION,
-            MediaStore.Audio.Media.DATA,
-        )
 
-        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= 5000"
-        val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
+        // 1. MediaStore Scan (if storage permission is available)
+        if (hasStoragePermission(context)) {
+            val projection = arrayOf(
+                MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.ALBUM,
+                MediaStore.Audio.Media.ALBUM_ID,
+                MediaStore.Audio.Media.DURATION,
+                MediaStore.Audio.Media.DATA,
+            )
 
-        runCatching {
-            context.contentResolver.query(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                projection,
-                selection,
-                null,
-                sortOrder,
-            )?.use { cursor ->
-                val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-                val titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
-                val artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-                val albumCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
-                val albumIdCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
-                val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-                val dataCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+            val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= 3000"
+            val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
 
-                val albumArtBaseUri = Uri.parse("content://media/external/audio/albumart")
+            runCatching {
+                context.contentResolver.query(
+                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    projection,
+                    selection,
+                    null,
+                    sortOrder,
+                )?.use { cursor ->
+                    val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+                    val titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
+                    val artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
+                    val albumCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+                    val albumIdCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+                    val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+                    val dataCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
 
-                while (cursor.moveToNext()) {
-                    val id = cursor.getLong(idCol)
-                    val rawTitle = cursor.getString(titleCol)
-                    val rawArtist = cursor.getString(artistCol)
-                    val rawAlbum = cursor.getString(albumCol)
-                    val albumId = cursor.getLong(albumIdCol)
-                    val durationMs = cursor.getLong(durationCol)
-                    val path = cursor.getString(dataCol)
+                    val albumArtBaseUri = Uri.parse("content://media/external/audio/albumart")
 
-                    val contentUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id).toString()
-                    val title = rawTitle.takeUnless { it.isNullOrBlank() } ?: "Track $id"
-                    val artist = rawArtist.takeUnless { it.isNullOrBlank() || it == "<unknown>" } ?: "Unknown Artist"
-                    val albumName = rawAlbum.takeUnless { it.isNullOrBlank() || it == "<unknown>" }
-                    val artworkUrl = if (albumId > 0) ContentUris.withAppendedId(albumArtBaseUri, albumId).toString() else null
-                    val durationText = formatDuration(durationMs)
+                    while (cursor.moveToNext()) {
+                        val id = cursor.getLong(idCol)
+                        val rawTitle = cursor.getString(titleCol)
+                        val rawArtist = cursor.getString(artistCol)
+                        val rawAlbum = cursor.getString(albumCol)
+                        val albumId = cursor.getLong(albumIdCol)
+                        val durationMs = cursor.getLong(durationCol)
+                        val path = cursor.getString(dataCol)
 
-                    songs.add(
-                        Song(
-                            videoId = videoIdByUri[contentUri] ?: contentUri,
-                            title = title,
-                            artist = artist,
-                            thumbnailUrl = artworkUrl,
-                            durationText = durationText,
-                            albumName = albumName,
-                            localUri = contentUri,
-                            localPath = path,
+                        if (!path.isNullOrBlank()) knownPaths.add(path)
+
+                        val contentUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id).toString()
+                        val title = rawTitle.takeUnless { it.isNullOrBlank() } ?: "Track $id"
+                        val artist = rawArtist.takeUnless { it.isNullOrBlank() || it == "<unknown>" } ?: "Unknown Artist"
+                        val albumName = rawAlbum.takeUnless { it.isNullOrBlank() || it == "<unknown>" }
+                        val artworkUrl = if (albumId > 0) ContentUris.withAppendedId(albumArtBaseUri, albumId).toString() else null
+                        val durationText = formatDuration(durationMs)
+
+                        songs.add(
+                            Song(
+                                videoId = videoIdByUri[contentUri] ?: contentUri,
+                                title = title,
+                                artist = artist,
+                                thumbnailUrl = artworkUrl,
+                                durationText = durationText,
+                                albumName = albumName,
+                                localUri = contentUri,
+                                localPath = path,
+                            )
                         )
-                    )
+                    }
+                }
+            }.onFailure { Log.w(TAG, "Failed scanning device local music via MediaStore: ${it.message}") }
+        }
+
+        // 2. Direct File System Scan for USB Pendrives & Mounted External Storage (/storage/)
+        runCatching {
+            val storageRoot = File("/storage")
+            if (storageRoot.exists() && storageRoot.isDirectory) {
+                storageRoot.listFiles()?.forEach { storageVolume ->
+                    if (storageVolume.isDirectory && storageVolume.canRead()) {
+                        scanDirectoryForAudio(context, storageVolume, songs, knownPaths, maxDepth = 4)
+                    }
                 }
             }
-        }.onFailure { Log.w(TAG, "Failed scanning device local music: ${it.message}") }
+        }.onFailure { Log.w(TAG, "Failed scanning /storage/ for USB pendrives: ${it.message}") }
 
-        songs
+        // Also scan context.getExternalFilesDirs for USB drives
+        runCatching {
+            context.getExternalFilesDirs(null)?.forEach { externalDir ->
+                if (externalDir != null) {
+                    var root = externalDir
+                    while (root.parentFile != null && root.parentFile?.name != "storage" && root.parentFile?.name != "Android") {
+                        root = root.parentFile ?: break
+                    }
+                    if (root.canRead()) {
+                        scanDirectoryForAudio(context, root, songs, knownPaths, maxDepth = 4)
+                    }
+                }
+            }
+        }
+
+        songs.distinctBy { it.localPath ?: it.localUri ?: it.videoId }
+    }
+
+    private fun scanDirectoryForAudio(
+        context: Context,
+        dir: File,
+        results: MutableList<Song>,
+        knownPaths: MutableSet<String>,
+        maxDepth: Int,
+    ) {
+        if (maxDepth <= 0 || !dir.canRead() || dir.name.startsWith(".")) return
+
+        dir.listFiles()?.forEach { file ->
+            if (file.isDirectory) {
+                scanDirectoryForAudio(context, file, results, knownPaths, maxDepth - 1)
+            } else if (file.isFile && isAudioFileName(file.name)) {
+                val absolutePath = file.absolutePath
+                if (absolutePath !in knownPaths) {
+                    knownPaths.add(absolutePath)
+                    val uri = Uri.fromFile(file).toString()
+                    val song = buildSongFromUri(context, uri, file.name)
+                    results.add(song.copy(localPath = absolutePath))
+                }
+            }
+        }
     }
 
     private fun isAudioFileName(name: String): Boolean {

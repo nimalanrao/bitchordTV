@@ -61,7 +61,9 @@ import com.music.bitchord.ui.tv.theme.TvThemeColors
 import com.music.bitchord.ui.tv.theme.appleSpring
 
 /**
- * Standard TV Content Card for albums, playlists, artists, and songs.
+ * 1:1 Apple Music TV Content Card matching Image 6.
+ * Features a category label above the card, full-width artwork on top, and an integrated
+ * frosted/colored text block at the bottom with title and subtitle.
  */
 @Composable
 fun TvCard(
@@ -69,7 +71,8 @@ fun TvCard(
     subtitle: String?,
     artworkUrl: String?,
     modifier: Modifier = Modifier,
-    cardWidth: Dp = 160.dp,
+    cardWidth: Dp = 168.dp,
+    categoryLabel: String? = null,
     aspectRatio: Float = 1.0f,
     isCircle: Boolean = false,
     isPlaying: Boolean = false,
@@ -79,112 +82,148 @@ fun TvCard(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
-    val shape: Shape = if (isCircle) CircleShape else RoundedCornerShape(14.dp)
+    val shape: Shape = if (isCircle) CircleShape else RoundedCornerShape(16.dp)
+    val palette = TvThemeColors.current
 
     Column(
-        modifier = modifier
-            .width(cardWidth)
-            .tvCardFocus(
-                shape = shape,
-                focusedScale = 1.06f,
-                focusedBorderColor = TvColors.BorderFocused,
-                onClick = onClick,
-            ),
+        modifier = modifier.width(cardWidth),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(aspectRatio)
-                .clip(shape)
-                .background(TvColors.SurfaceVariant),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (!artworkUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(artworkUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            }
-
-            // Dark gradient scrim at the bottom of the artwork
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color(0x88000000)),
-                            startY = 100f,
-                        )
-                    )
-            )
-
-            if (isPlaying) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(8.dp)
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(TvColors.AccentRed),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Playing",
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
-
-            if (badge != null) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(6.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(TvColors.ScrimDark)
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                ) {
-                    Text(
-                        text = badge,
-                        color = TvColors.TextPrimary,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = TvSFProDisplay,
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = title,
-            color = if (isFocused) TvColors.AccentRed else TvThemeColors.current.textPrimary,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.W600,
-            fontFamily = TvSFProDisplay,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        if (!subtitle.isNullOrBlank()) {
+        // Small category label above card (matching Image 6: "New Release", "Made For You")
+        if (!categoryLabel.isNullOrBlank()) {
             Text(
-                text = subtitle,
-                color = TvThemeColors.current.textSecondary,
-                fontSize = 12.sp,
+                text = categoryLabel,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
                 fontFamily = TvSFProDisplay,
+                color = if (isFocused) Color.White else Color.White.copy(alpha = 0.5f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
             )
+        }
+
+        // Main Unified Card Container
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .tvCardFocus(
+                    shape = shape,
+                    focusedScale = 1.06f,
+                    focusedBorderColor = Color.White,
+                    onClick = onClick,
+                )
+                .background(Color(0xFF1E1E26)),
+        ) {
+            // Artwork Portion
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(aspectRatio)
+                    .clip(if (isCircle) CircleShape else RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .background(palette.surfaceVariant),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (!artworkUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(artworkUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+
+                // Apple Music badge watermark in top right of card (if not circle)
+                if (!isCircle) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_logo),
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.85f),
+                            modifier = Modifier.size(12.dp),
+                        )
+                    }
+                }
+
+                if (isPlaying) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(8.dp)
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(palette.accentRed),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Playing",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+
+                if (badge != null) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(6.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(TvColors.ScrimDark)
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                    ) {
+                        Text(
+                            text = badge,
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = TvSFProDisplay,
+                        )
+                    }
+                }
+            }
+
+            // Integrated Bottom Text Container (matching Image 6)
+            if (!isCircle) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF262632))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        text = title,
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = TvSFProDisplay,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+
+                    if (!subtitle.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = subtitle,
+                            color = Color.White.copy(alpha = 0.65f),
+                            fontSize = 12.sp,
+                            fontFamily = TvSFProDisplay,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
         }
     }
 }
