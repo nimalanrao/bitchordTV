@@ -1,5 +1,6 @@
 package com.music.bitchord.ui.tv.components
 
+import android.graphics.Bitmap
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,8 +30,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -50,9 +54,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
 import coil3.request.crossfade
+import coil3.toBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.music.bitchord.ui.tv.focus.onTvKeyEvent
 import com.music.bitchord.ui.tv.focus.tvButtonFocus
 import com.music.bitchord.ui.tv.focus.tvCardFocus
@@ -62,10 +72,91 @@ import com.music.bitchord.ui.tv.theme.TvSFProDisplay
 import com.music.bitchord.ui.tv.theme.TvThemeColors
 import com.music.bitchord.ui.tv.theme.appleSpring
 
+private val cardColorCache = androidx.collection.LruCache<String, Color>(200)
+
+@Composable
+fun rememberDominantCardColor(artworkUrl: String?, defaultColor: Color = Color(0xFF22222C)): Color {
+    val context = LocalContext.current
+    var dominantColor by remember(artworkUrl) {
+        mutableStateOf(artworkUrl?.let { cardColorCache.get(it) } ?: defaultColor)
+    }
+
+    LaunchedEffect(artworkUrl) {
+        if (artworkUrl.isNullOrBlank()) {
+            dominantColor = defaultColor
+            return@LaunchedEffect
+        }
+        val cached = cardColorCache.get(artworkUrl)
+        if (cached != null) {
+            dominantColor = cached
+            return@LaunchedEffect
+        }
+
+        withContext(Dispatchers.IO) {
+            try {
+                val loader = ImageLoader(context)
+                val request = ImageRequest.Builder(context)
+                    .data(artworkUrl)
+                    .size(32, 32)
+                    .allowHardware(false)
+                    .build()
+                val result = loader.execute(request)
+                if (result is SuccessResult) {
+                    val bitmap = result.image.toBitmap()
+                    val extracted = sampleDominantDarkColor(bitmap)
+                    cardColorCache.put(artworkUrl, extracted)
+                    withContext(Dispatchers.Main) {
+                        dominantColor = extracted
+                    }
+                }
+            } catch (e: Exception) {
+                // Fallback to default
+            }
+        }
+    }
+    return dominantColor
+}
+
+private fun sampleDominantDarkColor(bitmap: Bitmap): Color {
+    var rSum = 0L
+    var gSum = 0L
+    var bSum = 0L
+    var count = 0L
+    val width = bitmap.width
+    val height = bitmap.height
+
+    for (x in 0 until width step 2) {
+        for (y in 0 until height step 2) {
+            val pixel = bitmap.getPixel(x, y)
+            val a = (pixel shr 24) and 0xff
+            if (a > 100) {
+                rSum += (pixel shr 16) and 0xff
+                gSum += (pixel shr 8) and 0xff
+                bSum += pixel and 0xff
+                count++
+            }
+        }
+    }
+
+    if (count == 0L) return Color(0xFF22222C)
+
+    val rAvg = (rSum / count).toInt()
+    val gAvg = (gSum / count).toInt()
+    val bAvg = (bSum / count).toInt()
+
+    val hsv = FloatArray(3)
+    android.graphics.Color.RGBToHSV(rAvg, gAvg, bAvg, hsv)
+    hsv[1] = (hsv[1] * 1.3f).coerceIn(0.40f, 0.95f) // Rich vibrant saturation
+    hsv[2] = 0.22f // Deep luxury dark value for pure white text readability
+
+    val finalColorInt = android.graphics.Color.HSVToColor(hsv)
+    return Color(finalColorInt)
+}
+
 /**
  * 1:1 Apple Music TV Content Card matching Image 6.
  * Features a category label above the card, full-width artwork on top, and an integrated
- * frosted/colored text block at the bottom with title and subtitle.
+ * dynamic artwork-tinted text block at the bottom with title and subtitle.
  */
 @Composable
 fun TvCard(
@@ -87,10 +178,16 @@ fun TvCard(
     val shape: Shape = if (isCircle) CircleShape else RoundedCornerShape(16.dp)
     val palette = TvThemeColors.current
 
+    val dominantBg = rememberDominantCardColor(artworkUrl, palette.surfaceVariant)
+    val textBgColor by animateColorAsState(
+        targetValue = dominantBg,
+        label = "cardDynamicTextBg",
+    )
+
     Column(
         modifier = modifier.width(cardWidth),
     ) {
-        // Small category label above card (matching Image 6: "New Release", "Made For You")
+        // Small category label above card
         if (!categoryLabel.isNullOrBlank()) {
             Text(
                 text = categoryLabel,
@@ -114,7 +211,7 @@ fun TvCard(
                     focusedBorderColor = Color.White,
                     onClick = onClick,
                 )
-                .background(Color(0xFF1E1E26)),
+                .background(textBgColor),
         ) {
             // Artwork Portion
             Box(
@@ -194,12 +291,12 @@ fun TvCard(
                 }
             }
 
-            // Integrated Bottom Text Container (matching Image 6)
+            // Dynamic Artwork-Tinted Bottom Text Container
             if (!isCircle) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF262632))
+                        .background(textBgColor)
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalArrangement = Arrangement.Center,
                 ) {
@@ -217,7 +314,7 @@ fun TvCard(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = subtitle,
-                            color = Color.White.copy(alpha = 0.65f),
+                            color = Color.White.copy(alpha = 0.70f),
                             fontSize = 12.sp,
                             fontFamily = TvSFProDisplay,
                             maxLines = 1,

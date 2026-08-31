@@ -154,6 +154,10 @@ fun TvMeshBackground(
         }
     }
 
+    val tvThemeId by AppSettings.tvTheme.collectAsState()
+    val isOledMode = tvThemeId.lowercase() in listOf("pure_black", "oled", "pure_black_oled")
+    val baseCanvasColor = if (isOledMode) Color(0xFF000000) else Color(0xFF08080B)
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -162,56 +166,58 @@ fun TvMeshBackground(
                 val h = size.height
 
                 onDrawBehind {
-                    // 1. Deep dark background canvas base
-                    drawRect(color = Color(0xFF08080B))
+                    // 1. Deep dark background canvas base (True #000000 on OLED)
+                    drawRect(color = baseCanvasColor)
 
-                    // 2. Animated orbital centers
-                    val t = animationProgress
-                    val orbPositions = listOf(
-                        Offset(
-                            x = w * (0.22f + 0.16f * sin(t * 6.28f)),
-                            y = h * (0.28f + 0.12f * cos(t * 6.28f)),
-                        ),
-                        Offset(
-                            x = w * (0.72f + 0.14f * cos(t * 6.28f + 1.2f)),
-                            y = h * (0.24f + 0.16f * sin(t * 6.28f + 1.8f)),
-                        ),
-                        Offset(
-                            x = w * (0.52f + 0.12f * sin(t * 6.28f + 2.8f)),
-                            y = h * (0.72f + 0.14f * cos(t * 6.28f + 1.4f)),
-                        ),
-                        Offset(
-                            x = w * (0.32f + 0.10f * cos(t * 6.28f + 4.2f)),
-                            y = h * (0.54f + 0.12f * sin(t * 6.28f + 3.2f)),
-                        ),
-                    )
+                    if (!isOledMode) {
+                        // 2. Animated orbital centers
+                        val t = animationProgress
+                        val orbPositions = listOf(
+                            Offset(
+                                x = w * (0.22f + 0.16f * sin(t * 6.28f)),
+                                y = h * (0.28f + 0.12f * cos(t * 6.28f)),
+                            ),
+                            Offset(
+                                x = w * (0.72f + 0.14f * cos(t * 6.28f + 1.2f)),
+                                y = h * (0.24f + 0.16f * sin(t * 6.28f + 1.8f)),
+                            ),
+                            Offset(
+                                x = w * (0.52f + 0.12f * sin(t * 6.28f + 2.8f)),
+                                y = h * (0.72f + 0.14f * cos(t * 6.28f + 1.4f)),
+                            ),
+                            Offset(
+                                x = w * (0.32f + 0.10f * cos(t * 6.28f + 4.2f)),
+                                y = h * (0.54f + 0.12f * sin(t * 6.28f + 3.2f)),
+                            ),
+                        )
 
-                    val orbColors = listOf(color0, color1, color2, color3)
-                    val orbRadius = minOf(w, h) * 0.62f
+                        val orbColors = listOf(color0, color1, color2, color3)
+                        val orbRadius = minOf(w, h) * 0.62f
 
-                    orbPositions.forEachIndexed { index, center ->
-                        val orbColor = orbColors.getOrElse(index) { orbColors.last() }
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    orbColor.copy(alpha = 0.65f),
-                                    orbColor.copy(alpha = 0.25f),
-                                    Color.Transparent,
+                        orbPositions.forEachIndexed { index, center ->
+                            val orbColor = orbColors.getOrElse(index) { orbColors.last() }
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        orbColor.copy(alpha = 0.65f),
+                                        orbColor.copy(alpha = 0.25f),
+                                        Color.Transparent,
+                                    ),
+                                    center = center,
+                                    radius = orbRadius,
                                 ),
                                 center = center,
                                 radius = orbRadius,
-                            ),
-                            center = center,
-                            radius = orbRadius,
-                        )
-                    }
+                            )
+                        }
 
-                    // 3. Ultra-subtle noise/grain overlay
-                    drawIntoCanvas { canvas ->
-                        canvas.nativeCanvas.drawRect(
-                            0f, 0f, w, h,
-                            noisePaint,
-                        )
+                        // 3. Ultra-subtle noise/grain overlay
+                        drawIntoCanvas { canvas ->
+                            canvas.nativeCanvas.drawRect(
+                                0f, 0f, w, h,
+                                noisePaint,
+                            )
+                        }
                     }
                 }
             },

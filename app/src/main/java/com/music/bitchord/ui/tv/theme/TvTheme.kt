@@ -21,7 +21,6 @@ import androidx.tv.material3.Typography
 import androidx.tv.material3.darkColorScheme
 import com.music.bitchord.R
 import com.music.bitchord.data.settings.AppSettings
-import com.music.bitchord.data.settings.ThemeMode
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Immutable palette data class — one instance per theme variant
@@ -67,7 +66,7 @@ data class TvColorPalette(
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Dark Palette (default TV OLED/LED luxury dark canvas)
+// 1. Dark Palette (Dynamic Artwork luxury dark canvas)
 // ─────────────────────────────────────────────────────────────────────────────
 
 val TvDarkPalette = TvColorPalette(
@@ -89,12 +88,12 @@ val TvDarkPalette = TvColorPalette(
     textMuted = Color(0xFF6E6E7A),
 
     borderSubtle = Color(0xFF282834),
-    borderFocused = Color(0xFFFA2D48),
+    borderFocused = Color(0xFFFFFFFF),
     borderFocusedWhite = Color(0xFFFFFFFF),
 
     scrimDark = Color(0xCC000000),
     glassOverlay = Color(0x3320202E),
-    glassOverlayFocused = Color(0x66FA2D48),
+    glassOverlayFocused = Color(0x44FFFFFF),
 
     backgroundGradient = Brush.verticalGradient(
         colors = listOf(
@@ -108,7 +107,89 @@ val TvDarkPalette = TvColorPalette(
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Light Palette (Apple Music-inspired clean white)
+// 2. Pure Black OLED Palette (True #000000 Canvas for 100% OLED Pixel Shutdown)
+// ─────────────────────────────────────────────────────────────────────────────
+
+val TvOledPalette = TvColorPalette(
+    accentRed = Color(0xFFFA2D48),
+    accentRedGlow = Color(0x66FA2D48),
+    accentPink = Color(0xFFFF375F),
+    accentPurple = Color(0xFFBF5AF2),
+    accentBlue = Color(0xFF0A84FF),
+
+    background = Color(0xFF000000),
+    backgroundElevated = Color(0xFF080808),
+    surface = Color(0xFF0E0E0E),
+    surfaceVariant = Color(0xFF161616),
+    surfaceFocused = Color(0xFF282828),
+    surfaceSelected = Color(0xFF202020),
+
+    textPrimary = Color(0xFFFFFFFF),
+    textSecondary = Color(0xFFA5A5B0),
+    textMuted = Color(0xFF666670),
+
+    borderSubtle = Color(0xFF1A1A1A),
+    borderFocused = Color(0xFFFFFFFF),
+    borderFocusedWhite = Color(0xFFFFFFFF),
+
+    scrimDark = Color(0xFA000000),
+    glassOverlay = Color(0x22000000),
+    glassOverlayFocused = Color(0x44FFFFFF),
+
+    backgroundGradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF000000),
+            Color(0xFF000000),
+            Color(0xFF000000),
+        ),
+    ),
+
+    isDark = true,
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. Midnight Palette (Deep Navy / Sapphire Dark Canvas)
+// ─────────────────────────────────────────────────────────────────────────────
+
+val TvMidnightPalette = TvColorPalette(
+    accentRed = Color(0xFF0A84FF),
+    accentRedGlow = Color(0x660A84FF),
+    accentPink = Color(0xFF5E5CE6),
+    accentPurple = Color(0xFFBF5AF2),
+    accentBlue = Color(0xFF64D2FF),
+
+    background = Color(0xFF070B14),
+    backgroundElevated = Color(0xFF0D1424),
+    surface = Color(0xFF121B30),
+    surfaceVariant = Color(0xFF1B2844),
+    surfaceFocused = Color(0xFF283B64),
+    surfaceSelected = Color(0xFF172B4D),
+
+    textPrimary = Color(0xFFFFFFFF),
+    textSecondary = Color(0xFFA0B0CB),
+    textMuted = Color(0xFF657595),
+
+    borderSubtle = Color(0xFF1E2E50),
+    borderFocused = Color(0xFFFFFFFF),
+    borderFocusedWhite = Color(0xFFFFFFFF),
+
+    scrimDark = Color(0xCC000000),
+    glassOverlay = Color(0x33121B30),
+    glassOverlayFocused = Color(0x44FFFFFF),
+
+    backgroundGradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF0D162B),
+            Color(0xFF080D1A),
+            Color(0xFF050810),
+        ),
+    ),
+
+    isDark = true,
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. Light Palette (Apple Music-inspired clean white)
 // ─────────────────────────────────────────────────────────────────────────────
 
 val TvLightPalette = TvColorPalette(
@@ -130,7 +211,7 @@ val TvLightPalette = TvColorPalette(
     textMuted = Color(0xFF8E8E93),
 
     borderSubtle = Color(0xFFD1D1D6),
-    borderFocused = Color(0xFFE5233D),
+    borderFocused = Color(0xFFFFFFFF),
     borderFocusedWhite = Color(0xFF1C1C1E),
 
     scrimDark = Color(0x88000000),
@@ -149,26 +230,18 @@ val TvLightPalette = TvColorPalette(
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CompositionLocal — runtime accessor
+// CompositionLocal & Static Accessors
 // ─────────────────────────────────────────────────────────────────────────────
 
 val LocalTvColors = compositionLocalOf { TvDarkPalette }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Backward-compatible static accessor — keeps ALL existing TvColors.X references working.
-// This object always returns dark-mode colors for compile-time constants (typography, etc.)
-// Runtime code that needs theme-awareness should use TvThemeColors (composable).
-// ─────────────────────────────────────────────────────────────────────────────
-
 object TvColors {
-    // Apple Music signature vibrant accent
     val AccentRed = Color(0xFFFA2D48)
     val AccentRedGlow = Color(0x66FA2D48)
     val AccentPink = Color(0xFFFF375F)
     val AccentPurple = Color(0xFFBF5AF2)
     val AccentBlue = Color(0xFF0A84FF)
 
-    // Deep luxury dark canvas & surfaces for TV OLED/LED
     val Background = Color(0xFF08080B)
     val BackgroundElevated = Color(0xFF101015)
     val Surface = Color(0xFF17171E)
@@ -176,22 +249,18 @@ object TvColors {
     val SurfaceFocused = Color(0xFF323242)
     val SurfaceSelected = Color(0xFF38151D)
 
-    // Text hierarchy optimized for 10-foot viewing distance
     val TextPrimary = Color(0xFFFFFFFF)
     val TextSecondary = Color(0xFFA0A0AB)
     val TextMuted = Color(0xFF6E6E7A)
 
-    // Borders & Focus indicator tokens
     val BorderSubtle = Color(0xFF282834)
-    val BorderFocused = Color(0xFFFA2D48)
+    val BorderFocused = Color(0xFFFFFFFF)
     val BorderFocusedWhite = Color(0xFFFFFFFF)
 
-    // Overlays & Scrims
     val ScrimDark = Color(0xCC000000)
     val GlassOverlay = Color(0x3320202E)
-    val GlassOverlayFocused = Color(0x66FA2D48)
+    val GlassOverlayFocused = Color(0x44FFFFFF)
 
-    // Dynamic TV backdrop gradient
     val BackgroundGradient = Brush.verticalGradient(
         colors = listOf(
             Color(0xFF150D18),
@@ -201,10 +270,6 @@ object TvColors {
     )
 }
 
-/**
- * Runtime-aware theme colors accessor. Use inside @Composable functions
- * for theme-responsive colors (dark/light mode).
- */
 object TvThemeColors {
     val current: TvColorPalette
         @Composable
@@ -258,15 +323,13 @@ private val TvTypography = Typography(
         fontWeight = FontWeight.W700,
         fontSize = 24.sp,
         lineHeight = 32.sp,
-        letterSpacing = (-0.3).sp,
         color = TvColors.TextPrimary,
     ),
     headlineMedium = TextStyle(
         fontFamily = TvSFProDisplay,
-        fontWeight = FontWeight.W600,
+        fontWeight = FontWeight.W700,
         fontSize = 20.sp,
         lineHeight = 28.sp,
-        letterSpacing = (-0.2).sp,
         color = TvColors.TextPrimary,
     ),
     headlineSmall = TextStyle(
@@ -285,7 +348,7 @@ private val TvTypography = Typography(
     ),
     titleMedium = TextStyle(
         fontFamily = TvSFProDisplay,
-        fontWeight = FontWeight.W500,
+        fontWeight = FontWeight.W600,
         fontSize = 16.sp,
         lineHeight = 22.sp,
         color = TvColors.TextPrimary,
@@ -341,14 +404,10 @@ private val TvTypography = Typography(
     ),
 )
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MaterialTheme color scheme (TV)
-// ─────────────────────────────────────────────────────────────────────────────
-
 val TvColorScheme: ColorScheme = darkColorScheme(
-    primary = TvColors.AccentRed,
-    onPrimary = Color.White,
-    primaryContainer = TvColors.SurfaceSelected,
+    primary = Color.White,
+    onPrimary = Color.Black,
+    primaryContainer = Color(0xFF282828),
     onPrimaryContainer = Color.White,
     secondary = TvColors.AccentPink,
     onSecondary = Color.White,
@@ -361,10 +420,6 @@ val TvColorScheme: ColorScheme = darkColorScheme(
     border = TvColors.BorderSubtle,
 )
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Dimensions — updated for top-nav layout
-// ─────────────────────────────────────────────────────────────────────────────
-
 object TvDimensions {
     val SafeMarginHorizontal = 48.dp
     val SafeMarginVertical = 27.dp
@@ -372,24 +427,24 @@ object TvDimensions {
     val ShelfSpacing = 28.dp
     val TopNavBarHeight = 64.dp
 
-    // Legacy — kept for backward compatibility but no longer used for nav rail
     val NavigationRailWidth = 76.dp
     val NavigationRailExpandedWidth = 220.dp
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Theme wrapper — provides CompositionLocal palette based on user preference
+// Theme wrapper — reacts directly to AppSettings.tvTheme for OLED / Midnight / Dark
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun BitChordTvTheme(
     content: @Composable () -> Unit,
 ) {
-    val themeMode by AppSettings.themeMode.collectAsState()
-    val palette = when (themeMode) {
-        ThemeMode.LIGHT -> TvLightPalette
-        ThemeMode.DARK -> TvDarkPalette
-        ThemeMode.SYSTEM -> TvDarkPalette // TV is almost always dark
+    val tvThemeId by AppSettings.tvTheme.collectAsState()
+
+    val palette = when (tvThemeId.lowercase()) {
+        "pure_black", "oled", "pure_black_oled" -> TvOledPalette
+        "midnight" -> TvMidnightPalette
+        else -> TvDarkPalette
     }
 
     CompositionLocalProvider(LocalTvColors provides palette) {
