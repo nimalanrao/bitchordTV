@@ -299,10 +299,17 @@ fun TvAboutDialog(
                 color = TvColors.TextPrimary,
             )
             Text(
-                text = "Version ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
+                text = "Version 0.01 (Build 1) • TV Platform & UX by Nyxcore",
                 fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
                 fontFamily = TvSFProDisplay,
                 color = TvColors.AccentRed,
+            )
+            Text(
+                text = "TV UI/UX Architecture and Remote-First Implementation engineered by Nyxcore.",
+                fontSize = 13.sp,
+                fontFamily = TvSFProDisplay,
+                color = TvColors.TextPrimary,
             )
             Text(
                 text = "Licensed under the GNU General Public License v3.0 (GPLv3). BitChord is an independent third-party client not affiliated with Google or YouTube.",

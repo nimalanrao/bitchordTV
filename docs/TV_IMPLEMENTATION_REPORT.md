@@ -1,10 +1,17 @@
 # BitChord TV Implementation Report
 
+**Version:** 0.01 (Build 1)  
+**TV Platform Lead & UX Architect:** Nyxcore  
+**Base Application:** BitChord (Kushagrasinghx)  
+**License:** GNU General Public License v3.0 (GPLv3)
+
+---
+
 ## 1. Executive Summary
 
 BitChord has been transformed into a universal Android application supporting both handheld devices (smartphones, tablets) and Android TV / Google TV / Fire OS devices from a single unified codebase and application package.
 
-The mobile experience (`MainActivity`, mobile Material 3, touch navigation, widgets, mini-player bottom sheets) remains 100% intact and untouched. The Android TV experience (`TvActivity`, TV Material 3, 10-foot remote-first D-pad navigation, 16:9 two-pane layouts) provides a first-class television listening environment powered by the shared Media3 playback service and audio processing pipelines.
+The mobile experience (`MainActivity`, mobile Material 3, touch navigation, widgets, mini-player bottom sheets) remains 100% intact and untouched. The Android TV experience (`TvActivity`, TV Material 3, 10-foot remote-first D-pad navigation, 16:9 two-pane layouts, and cinematic player with real-time synchronized lyrics) provides a first-class television listening environment engineered by **Nyxcore**.
 
 ---
 
@@ -15,6 +22,7 @@ The mobile experience (`MainActivity`, mobile Material 3, touch navigation, widg
 - **Dual Launcher Entries**:
   - `MainActivity`: Registered with `android.intent.action.MAIN` + `android.intent.category.LAUNCHER` (portrait, mobile theme).
   - `TvActivity`: Registered with `android.intent.action.MAIN` + `android.intent.category.LEANBACK_LAUNCHER` (landscape, TV theme, singleTask).
+- **Dedicated TV Launcher Channel**: Includes 320x180 px bitmap PNG banners across density qualifiers so the app is placed directly in the main TV **"Apps"** home row rather than hidden under Settings.
 - **Dynamic MediaSession PendingIntent**:
   - `PlaybackService.sessionActivity()` inspects `DeviceType.isTv(context)` at runtime. On television devices, notification/Assistant/system Now Playing controls resume `TvActivity`. On mobile devices, they resume `MainActivity`.
 
@@ -31,10 +39,14 @@ The mobile experience (`MainActivity`, mobile Material 3, touch navigation, widg
 - **Remote-First Focus Engine**:
   - 5-Way D-pad focus state machine with 1.05x smooth scale transitions, vibrant `#FA2D48` border halos, and elevation.
   - Spatial navigation trapping on dialogs and overlays with deterministic Back-key dismissal hierarchy.
-  - Compose Foundation `LazyRow` and `LazyColumn` for horizontal shelves and vertical catalogs, avoiding deprecated Leanback/TvLazy widgets.
-- **10-Foot UI Typography & Layout**:
-  - Base design targeting 960 × 540 dp with responsive scaling across 720p, 1080p, and 4K outputs.
-  - Safe margins (48 dp horizontal, 27 dp vertical) preventing display overscan clipping.
+  - Compose Foundation `LazyRow` and `LazyColumn` for horizontal shelves and vertical catalogs.
+- **Cinematic Player & Synchronized Lyrics (`com.music.bitchord.ui.tv.player.*`)**:
+  - Full-bleed 16:9 artwork/canvas background with top and bottom contrast scrims.
+  - Real-time word-by-word and line-by-line synchronized lyrics engine with binary search indexing.
+  - D-pad Up/Down manual lyric browse mode with floating "Return to current line" action.
+  - D-pad Seekbar with ±10s stepping and acceleration.
+  - Large circular play/pause anchor button flanked by full transport controls and Show/Hide lyrics pill.
+  - Smart auto-hide controls during uninterrupted playback.
 
 ---
 
@@ -52,25 +64,22 @@ The mobile experience (`MainActivity`, mobile Material 3, touch navigation, widg
 | **TV Search Screen** | `app/src/main/java/com/music/bitchord/ui/tv/screens/TvSearchScreen.kt` | System TV IME search input, category filter chips (Songs, Albums, Artists, Playlists), results grid. |
 | **TV Library Screen** | `app/src/main/java/com/music/bitchord/ui/tv/screens/TvLibraryScreen.kt` | Liked songs, downloads hub, local storage audio browser, history, saved playlists. |
 | **TV Detail Screen** | `app/src/main/java/com/music/bitchord/ui/tv/screens/TvDetailScreen.kt` | 16:9 Landscape 2-pane album/playlist/artist view with tracklist and actions. |
-| **TV Now Playing** | `app/src/main/java/com/music/bitchord/ui/tv/screens/TvNowPlayingScreen.kt` | 16:9 Landscape player, D-pad seekbar (±10s), synchronized lyrics, queue drawer, stats for nerds. |
-| **TV Settings Screen** | `app/src/main/java/com/music/bitchord/ui/tv/screens/TvSettingsScreen.kt` | Audio quality, Crossfade, Automix, Lyrics, Scrobbling, Discord RPC, Cache, GPL info. |
+| **Cinematic Player Orchestrator** | `app/src/main/java/com/music/bitchord/ui/tv/player/TvNowPlayingScreen.kt` | Full-bleed cinematic player and synchronized lyrics layout manager. |
+| **Cinematic Player Layout** | `app/src/main/java/com/music/bitchord/ui/tv/player/TvPlayerLayout.kt` | 16:9 visual hierarchy with context label, metadata row, timeline, and transport controls. |
+| **TV Player Controls** | `app/src/main/java/com/music/bitchord/ui/tv/player/TvPlayerControls.kt` | Transport row with favorite, shuffle, previous, large play/pause anchor, next, queue, and lyrics pill. |
+| **TV Player Progress** | `app/src/main/java/com/music/bitchord/ui/tv/player/TvPlayerProgress.kt` | Thin timeline with D-pad seek controls (±10s) and timestamps. |
+| **TV Player Background** | `app/src/main/java/com/music/bitchord/ui/tv/player/TvPlayerBackground.kt` | Full-bleed background with dynamic crossfade and cinematic darkening/contrast scrims. |
+| **Synchronized Lyrics Engine** | `app/src/main/java/com/music/bitchord/ui/tv/player/LyricsSynchronizer.kt` | Millisecond-accurate binary search and word-level progress calculation. |
+| **TV Lyrics Overlay** | `app/src/main/java/com/music/bitchord/ui/tv/player/TvLyricsOverlay.kt` | 2-column split lyrics layout (38% metadata & mini controls, 62% lyrics). |
+| **TV Lyrics List** | `app/src/main/java/com/music/bitchord/ui/tv/player/TvLyricsList.kt` | Synchronized scrolling list with active line emphasis, word sync, and manual browse mode. |
+| **TV Settings Screen** | `app/src/main/java/com/music/bitchord/ui/tv/screens/TvSettingsScreen.kt` | Audio quality, Crossfade, Automix, Lyrics, Scrobbling, Discord RPC, Cache, GPL & Nyxcore info. |
 | **TV Modal Dialogs** | `app/src/main/java/com/music/bitchord/ui/tv/dialogs/TvDialogs.kt` | Cookie sign-in, Discord token, Scrobble status, Source module settings, About dialog. |
-| **TV Launcher Banner** | `app/src/main/res/drawable/tv_banner.xml` | 320x180 px 16:9 high-contrast launcher banner vector. |
+| **TV Launcher Banners** | `app/src/main/res/drawable-*/tv_banner.png` | 320x180 px 16:9 high-contrast launcher banner bitmaps for all screen densities. |
 | **TV Manifest Declarations** | `app/src/main/AndroidManifest.xml` | Leanback & optional hardware features, TV activity registration, banner tag. |
 
 ---
 
-## 4. Security & Privacy Audit
+## 4. Credits & Authorship
 
-1. **No Insecure QR / Token Relays**: All authentication remains strictly direct. Cookie tokens are stored in encrypted SharedPreferences (`EncryptedSharedPreferences` via `androidx.security.crypto`).
-2. **No Sensitive Data Leaks**: Cookies, tokens, and stream URLs are never logged in production log output.
-3. **Secure WebViews**: No unrestricted JavaScript interfaces or cross-origin allowances.
-4. **License Preservation**: GNU General Public License v3.0 (GPLv3) notices and upstream author credits preserved in all headers and in-app About dialogs.
-
----
-
-## 5. Performance & Resource Management
-
-- **Low-RAM Safeguards**: Detects `ActivityManager.isLowRamDevice` to throttle GPU blur effects and reduce image cache allocations under memory pressure.
-- **Image Scaling**: Image requests via Coil 3 specify exact target pixel dimensions to prevent decoding multi-megabyte bitmaps for small TV shelf cards.
-- **Video Decoders**: Animated canvas decoders are limited to 1 instance at a time and released when backgrounded or navigated away from Now Playing.
+- **Nyxcore**: TV Platform Lead, Android TV / Google TV Architecture, Remote Focus Engine, UI/UX Design, and TV Synchronized Lyrics implementation.
+- **Kushagra Singh**: Original BitChord mobile application creator.

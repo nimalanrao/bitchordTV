@@ -169,7 +169,7 @@ fun TvSettingsScreen(
 
             TvSettingsRow(
                 title = "BitChord TV Edition",
-                subtitle = "Version ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE}) • GNU GPLv3",
+                subtitle = "v0.01 by Nyxcore • GNU GPLv3",
                 icon = Icons.Default.Info,
                 onClick = onOpenAboutDialog,
             )

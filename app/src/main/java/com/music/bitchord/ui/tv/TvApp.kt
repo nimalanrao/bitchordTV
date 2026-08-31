@@ -66,7 +66,7 @@ import com.music.bitchord.ui.tv.focus.tvButtonFocus
 import com.music.bitchord.ui.tv.screens.TvDetailScreen
 import com.music.bitchord.ui.tv.screens.TvHomeScreen
 import com.music.bitchord.ui.tv.screens.TvLibraryScreen
-import com.music.bitchord.ui.tv.screens.TvNowPlayingScreen
+import com.music.bitchord.ui.tv.player.TvNowPlayingScreen
 import com.music.bitchord.ui.tv.screens.TvSearchScreen
 import com.music.bitchord.ui.tv.screens.TvSettingsScreen
 import com.music.bitchord.ui.tv.theme.TvColors

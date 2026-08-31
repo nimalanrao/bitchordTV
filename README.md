@@ -3,7 +3,7 @@
 <br/>
 <br/>
 
-<img src="Logo.png" alt="BitChord app icon" width="180" />
+<img src="Banner.png" alt="BitChord TV Banner" width="100%" />
 
 # BitChord TV
 
@@ -11,13 +11,14 @@
 
 <br/>
 
-[![Latest release](https://img.shields.io/badge/Release-v1.5_TV_Edition-FA2D48?style=for-the-badge&labelColor=0d1117)](https://github.com/nimalanrao/bitchordTV/releases)
+[![Latest release](https://img.shields.io/badge/Release-v0.01_TV_Edition-FA2D48?style=for-the-badge&labelColor=0d1117)](https://github.com/nimalanrao/bitchordTV/releases)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge&labelColor=0d1117)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Android_%7C_Android_TV-4CAF50?style=for-the-badge&labelColor=0d1117)](#tv-compatibility)
+[![Lead](https://img.shields.io/badge/TV_Lead-Nyxcore-purple?style=for-the-badge&labelColor=0d1117)](#credits--authors)
 
 <br/>
 
-[**TV Experience**](#android-tv-features) · [**Mobile Features**](#mobile-features) · [**Compatibility**](#tv-compatibility) · [**Documentation**](#documentation) · [**License**](#license)
+[**TV Experience**](#android-tv-features) · [**Cinematic Player & Lyrics**](#cinematic-player--synchronized-lyrics) · [**Mobile Features**](#mobile-features) · [**Remote Controls**](#navigation--remote-controls) · [**Compatibility**](#tv-compatibility) · [**Credits**](#credits--authors)
 
 </div>
 
@@ -26,35 +27,39 @@
 
 ---
 
-<div align="center">
+## 🌟 Overview
 
-<img src="Banner.png" alt="BitChord banner" width="100%" />
-
-</div>
-
-## Overview
-
-**BitChord** is a high-quality universal Android music streaming application inspired by Apple Music's design language. It brings lossless audio streaming, intelligent DJ transitions, synchronized lyrics, and modern dark luxury aesthetics to both **smartphones** and **Android TV / Google TV** screens from a single unified application.
+**BitChord** is a premium universal Android music streaming application inspired by Apple Music's design language. It brings lossless audio streaming, intelligent DJ transitions, synchronized lyrics, and modern dark luxury aesthetics to both **smartphones** and **Android TV / Google TV** screens from a single unified application package.
 
 ---
 
 ## 📺 Android TV & Google TV Experience
 
-BitChord features a dedicated **remote-first television interface** built from the ground up for living rooms and home audio setups:
+BitChord features a dedicated **remote-first television interface** built from the ground up by **Nyxcore** for living rooms and home theater setups:
 
 - **100% 5-Way D-Pad Remote Navigation**: Intuitive spatial focus system designed for TV remotes, gamepads, and keyboards.
+- **Dedicated TV Launcher Channel**: Includes 16:9 bitmap banners (320 × 180 px) ensuring the app appears directly in the primary **"Apps"** home screen row across Google TV, Android TV OS, and Fire TV.
 - **10-Foot 16:9 Landscape Layouts**: Optimized for 720p, 1080p, and 4K displays with safe-margin protection against overscan.
 - **Collapsible Navigation Rail**: Fast, remote-friendly access to Home, Search, Library, and Settings.
-- **16:9 Two-Pane Now Playing**:
-  - Dominant album artwork with dynamic mesh backdrop.
-  - D-pad Seekbar with ±10s stepping and acceleration.
-  - Full transport controls, Repeat, Shuffle, and Favorite toggles.
-  - Side-panel for **Synchronized Word/Line Lyrics** with auto-follow and manual browsing.
-  - Side-panel for **Up Next Queue** management.
-  - In-app **Stats for Nerds** (audio codec, sample rate, bit depth, stream source).
-- **Television Search with System IME**: Search songs, albums, artists, and playlists with remote input and category chips.
-- **Ambient Mode & Background Playback**: Music keeps playing uninterrupted during screensaver and background transitions.
+- **Television Search with System IME**: Search songs, albums, artists, and playlists with remote input and category filter chips.
+- **Ambient Mode & Background Playback**: Music continues playing uninterrupted during screensaver and background transitions.
 - **Universal MediaSession Integration**: Home-screen media controls and voice assistant playback commands.
+
+---
+
+## 🎬 Cinematic Player & Synchronized Lyrics
+
+The TV player provides a full-bleed, high-contrast living room listening experience:
+
+- **Full-Bleed 16:9 Artwork & Animated Canvas**: Edge-to-edge album visuals with dynamic darkening and gradient scrims.
+- **Real-Time Synchronized Lyrics**:
+  - Word-by-word and line-by-line real-time highlighting.
+  - Smooth auto-follow scrolling synchronized to Media3 playhead position.
+  - D-pad Up/Down manual browsing mode with a floating **"Return to current line"** action.
+  - Instant seek snapping and track change synchronization.
+- **Thin Progress Timeline**: Subtle resting scrubber that expands upon focus, offering ±10-second D-pad stepping with repeat acceleration.
+- **Central Play/Pause Anchor**: Prominent circular transport button flanked by Favorite, Shuffle, Previous, Next, and Queue.
+- **Smart Controls Visibility**: Auto-hides controls after idle playback to showcase full-screen visuals, instantly waking on any remote interaction without eating keypresses.
 
 ---
 
@@ -76,11 +81,12 @@ The mobile phone experience retains 100% of BitChord's signature polish:
 
 | Input | TV Action |
 |---|---|
-| **D-Pad Up / Down / Left / Right** | Move visual focus across cards, buttons, and shelves |
-| **D-Pad Center / Enter** | Select focused item / Play track |
+| **D-Pad Up / Down / Left / Right** | Move visual focus across cards, buttons, shelves, and lyrics |
+| **D-Pad Center / Enter** | Select focused item / Play track / Toggle playback |
 | **D-Pad Left / Right (on Player Seekbar)** | Step backward / forward by ±10 seconds |
+| **D-Pad Up / Down (in Lyrics Mode)** | Manually browse lyrics (pauses auto-scroll) |
 | **Media Play / Pause / Next / Prev** | Global playback control regardless of active screen |
-| **Back Button** | Close overlays/dialogs -> return to previous screen -> exit |
+| **Back Button** | Close dialogs/lyrics -> return to previous catalog -> exit |
 
 ---
 
@@ -99,21 +105,17 @@ The mobile phone experience retains 100% of BitChord's signature polish:
 
 Explore the complete architecture and release documentation in [`docs/`](docs/):
 
-- 📄 [**TV Implementation Report**](docs/TV_IMPLEMENTATION_REPORT.md) – Comprehensive architecture, security analysis, and design system decisions.
+- 📄 [**TV Implementation Report**](docs/TV_IMPLEMENTATION_REPORT.md) – Architecture, security analysis, and design system decisions.
 - 📄 [**TV Compatibility Matrix**](docs/TV_COMPATIBILITY.md) – Device matrix, ABI details, and 16 KB page-size compliance.
 - 📄 [**TV Quality & Test Matrix**](docs/TV_TEST_MATRIX.md) – Remote traversal verification, display scaling, and playback checks.
 - 📄 [**TV Release Checklist**](docs/TV_RELEASE_CHECKLIST.md) – Store distribution and packaging guide.
 
 ---
 
-## 🛠️ Architecture & Tech Stack
+## 👥 Credits & Authors
 
-- **UI Framework**: Jetpack Compose (Material 3 for mobile, `androidx.tv.material3` for TV).
-- **Media Engine**: Media3 / ExoPlayer 1.11.0 with single-player `MediaSessionService`.
-- **DSP & ML**: Beat This! ONNX beat analyzer (`onnxruntime-android`) & C++ native analyzer.
-- **Script VM**: QuickJS Kotlin runtime (`quickjs-kt-android`) for stream module plugins.
-- **Networking**: Ktor 3.0 + OkHttp + kotlinx.serialization.
-- **Image Pipeline**: Coil 3 with AndroidX Palette dynamic color extraction.
+- **Nyxcore**: TV Platform Lead, Android TV / Google TV UI/UX Architecture, Remote Focus Engine, and TV Synchronized Lyrics implementation.
+- **Kushagra Singh**: Original BitChord mobile application creator and core audio engine.
 
 ---
 

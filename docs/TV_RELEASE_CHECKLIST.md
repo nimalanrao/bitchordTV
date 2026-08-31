@@ -1,24 +1,31 @@
 # BitChord TV Release & Store Publication Checklist
 
+**Release:** Version 0.01 (Build 1)  
+**TV Platform Lead & Architect:** Nyxcore  
+**License:** GNU General Public License v3.0 (GPLv3)
+
+---
+
 ## 1. Android TV Core Quality Checklist
 
 - [x] **Universal Manifest Declarations**:
   - `android.software.leanback` marked `android:required="false"`.
   - `android.hardware.touchscreen` marked `android:required="false"`.
   - Transitive hardware features (camera, telephony, microphone) marked `android:required="false"`.
-- [x] **TV Launcher & Banner Assets**:
+- [x] **Dedicated TV Launcher Channel & Banner Assets**:
   - `android:banner="@drawable/tv_banner"` included on `<application>` and `<activity android:name=".TvActivity">`.
-  - 16:9 banner (320 × 180 px) with legible branding on light and dark TV home screens.
+  - 16:9 banner PNGs (320 × 180 px xhdpi, 240 × 135 px hdpi, 160 × 90 px mdpi) placed across density qualifiers to guarantee display on Google TV & Android TV "Apps" home rows.
 - [x] **Dedicated TV Activity**:
   - `TvActivity` registered with `MAIN` + `LEANBACK_LAUNCHER`.
   - `screenOrientation="landscape"` and `launchMode="singleTask"`.
-- [x] **Remote-First Usability**:
+- [x] **Remote-First Usability & Focus**:
   - 100% of app features operable with standard 5-way D-pad remote and Back key.
-  - Clear visual focus indicator on every interactive control.
-  - No touch-only gestures required (no swipe-to-dismiss, long-press only, or pinch-to-zoom).
-- [x] **Media Playback & Session Integration**:
+  - Clear visual focus indicator on every interactive control (1.05x scale + halo).
+  - No touch-only gestures required.
+- [x] **Cinematic Media Playback & Lyrics**:
   - Active `MediaSession` supporting standard transport controls (Play, Pause, Skip, Seek).
   - Media session activity correctly resolves to `TvActivity` on TV devices.
+  - Millisecond-precise synchronized word-by-word and line-by-line lyrics engine with auto-follow.
   - Audio continues playback during ambient mode and screensaver transitions.
 
 ---
