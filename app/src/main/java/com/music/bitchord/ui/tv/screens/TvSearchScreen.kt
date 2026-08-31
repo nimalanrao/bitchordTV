@@ -48,11 +48,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.media3.session.MediaController
 import com.music.bitchord.data.model.BrowseType
 import com.music.bitchord.data.model.SearchFilter
 import com.music.bitchord.data.model.SearchResult
-import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.UiState
+import com.music.bitchord.playback.playSongs
 import com.music.bitchord.ui.MainViewModel
 import com.music.bitchord.ui.tv.components.TvCard
 import com.music.bitchord.ui.tv.components.TvEmptyState
@@ -65,6 +66,7 @@ import com.music.bitchord.ui.tv.theme.TvSFProDisplay
 @Composable
 fun TvSearchScreen(
     viewModel: MainViewModel,
+    mediaController: MediaController?,
     onNavigateToDetail: (browseId: String, title: String, subtitle: String, thumbnailUrl: String?, type: BrowseType) -> Unit,
     onNavigateToNowPlaying: () -> Unit,
     modifier: Modifier = Modifier,
@@ -72,8 +74,8 @@ fun TvSearchScreen(
     val query by viewModel.query.collectAsState()
     val resultsState by viewModel.results.collectAsState()
     val activeFilter by viewModel.filter.collectAsState()
-    val recentSearches by viewModel.recentSearches.collectAsState()
-    val suggestions by viewModel.searchSuggestions.collectAsState()
+    val searchHistory by viewModel.searchHistory.collectAsState()
+    val suggestions by viewModel.suggestions.collectAsState()
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -90,14 +92,14 @@ fun TvSearchScreen(
         // Search Input Bar
         TvSearchBar(
             query = query,
-            onQueryChange = { viewModel.setQuery(it) },
+            onQueryChange = { viewModel.onQueryChange(it) },
             onSearch = {
                 keyboardController?.hide()
                 focusManager.clearFocus()
-                viewModel.search(query)
+                viewModel.submitSearch()
             },
             onClear = {
-                viewModel.setQuery("")
+                viewModel.onQueryChange("")
             },
         )
 
@@ -114,7 +116,7 @@ fun TvSearchScreen(
                     label = filter.label,
                     isSelected = isSelected,
                     onClick = {
-                        viewModel.setFilter(filter)
+                        viewModel.onFilterChange(filter)
                     },
                 )
             }
@@ -142,14 +144,13 @@ fun TvSearchScreen(
                                     label = suggestion,
                                     isSelected = false,
                                     onClick = {
-                                        viewModel.setQuery(suggestion)
-                                        viewModel.search(suggestion)
+                                        viewModel.searchFor(suggestion)
                                     },
                                 )
                             }
                         }
                     }
-                } else if (recentSearches.isNotEmpty()) {
+                } else if (searchHistory.isNotEmpty()) {
                     Column {
                         Text(
                             text = "Recent Searches",
@@ -160,13 +161,12 @@ fun TvSearchScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            items(recentSearches) { recent ->
+                            items(searchHistory) { recent ->
                                 TvSearchFilterChip(
                                     label = recent,
                                     isSelected = false,
                                     onClick = {
-                                        viewModel.setQuery(recent)
-                                        viewModel.search(recent)
+                                        viewModel.searchFor(recent)
                                     },
                                 )
                             }
@@ -190,7 +190,7 @@ fun TvSearchScreen(
             is UiState.Error -> {
                 TvErrorState(
                     message = state.message,
-                    onRetry = { viewModel.search(query) },
+                    onRetry = { viewModel.submitSearch() },
                 )
             }
             is UiState.Success -> {
@@ -223,7 +223,8 @@ fun TvSearchScreen(
                                         subtitle = result.song.artist,
                                         artworkUrl = result.song.thumbnailUrl,
                                         onClick = {
-                                            viewModel.play(result.song)
+                                            viewModel.recordSearch()
+                                            mediaController?.playSongs(listOf(result.song), 0)
                                             onNavigateToNowPlaying()
                                         },
                                     )
@@ -241,6 +242,7 @@ fun TvSearchScreen(
                                             else -> null
                                         },
                                         onClick = {
+                                            viewModel.recordSearch()
                                             onNavigateToDetail(
                                                 result.item.browseId,
                                                 result.item.title,
@@ -274,15 +276,16 @@ private fun TvSearchBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
+            .height(56.dp)
             .tvButtonFocus(
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(16.dp),
                 focusedScale = 1.01f,
                 focusedBorderColor = TvColors.BorderFocused,
             )
             .background(TvColors.SurfaceVariant)
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Icon(
             imageVector = Icons.Default.Search,
@@ -291,28 +294,28 @@ private fun TvSearchBar(
             modifier = Modifier.size(24.dp),
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
-
         BasicTextField(
             value = query,
             onValueChange = onQueryChange,
-            modifier = Modifier.weight(1f),
-            singleLine = true,
+            modifier = Modifier
+                .weight(1f)
+                .padding(vertical = 4.dp),
             textStyle = TextStyle(
                 color = Color.White,
-                fontSize = 17.sp,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
                 fontFamily = TvSFProDisplay,
-                fontWeight = FontWeight.W500,
             ),
+            singleLine = true,
             cursorBrush = SolidColor(TvColors.AccentRed),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { onSearch() }),
             decorationBox = { innerTextField ->
                 if (query.isEmpty()) {
                     Text(
-                        text = "Search songs, albums, artists, playlists...",
+                        text = "Search songs, albums, artists...",
                         color = TvColors.TextMuted,
-                        fontSize = 16.sp,
+                        fontSize = 18.sp,
                         fontFamily = TvSFProDisplay,
                     )
                 }

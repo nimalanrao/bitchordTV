@@ -154,6 +154,7 @@ fun TvApp(
                             initialThumbnailUrl = detail.thumbnailUrl,
                             type = detail.type,
                             viewModel = viewModel,
+                            mediaController = mediaController,
                             onNavigateToNowPlaying = { isNowPlayingOpen = true },
                             onBack = { activeDetail = null },
                         )
@@ -172,6 +173,7 @@ fun TvApp(
                             TvDestination.SEARCH -> {
                                 TvSearchScreen(
                                     viewModel = viewModel,
+                                    mediaController = mediaController,
                                     onNavigateToDetail = { browseId, title, subtitle, thumb, type ->
                                         activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
                                     },

@@ -24,8 +24,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,7 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -47,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.media3.session.MediaController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
@@ -54,11 +52,11 @@ import com.music.bitchord.data.model.BrowseType
 import com.music.bitchord.data.model.DetailPage
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.UiState
+import com.music.bitchord.playback.playSongs
 import com.music.bitchord.ui.MainViewModel
 import com.music.bitchord.ui.tv.components.TvButton
 import com.music.bitchord.ui.tv.components.TvEmptyState
 import com.music.bitchord.ui.tv.components.TvErrorState
-import com.music.bitchord.ui.tv.components.TvIconButton
 import com.music.bitchord.ui.tv.focus.tvButtonFocus
 import com.music.bitchord.ui.tv.theme.TvColors
 import com.music.bitchord.ui.tv.theme.TvDimensions
@@ -72,51 +70,42 @@ fun TvDetailScreen(
     initialThumbnailUrl: String?,
     type: BrowseType,
     viewModel: MainViewModel,
+    mediaController: MediaController?,
     onNavigateToNowPlaying: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val detailStack by viewModel.detailStack.collectAsState()
+    val page = detailStack.lastOrNull { it.browseId == browseId }
+
     LaunchedEffect(browseId) {
-        viewModel.loadDetail(browseId, type, initialTitle, initialSubtitle, initialThumbnailUrl)
+        if (page == null) {
+            viewModel.openDetail(browseId, initialTitle, initialSubtitle, initialThumbnailUrl, type)
+        }
     }
 
-    val detailState by viewModel.detail.collectAsState()
-
-    when (val state = detailState) {
-        is UiState.Loading -> {
-            Box(
-                modifier = modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(color = TvColors.AccentRed)
-            }
+    if (page == null) {
+        Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator(color = TvColors.AccentRed)
         }
-        is UiState.Error -> {
-            TvErrorState(
-                message = state.message,
-                onRetry = {
-                    viewModel.loadDetail(browseId, type, initialTitle, initialSubtitle, initialThumbnailUrl)
-                },
-                modifier = modifier,
-            )
-        }
-        is UiState.Success -> {
-            val page = state.data
-            TvDetailContent(
-                page = page,
-                onPlaySongAt = { songs, index ->
-                    viewModel.play(songs, index)
+    } else {
+        TvDetailContent(
+            page = page,
+            onPlaySongAt = { songs, index ->
+                mediaController?.playSongs(songs, index)
+                onNavigateToNowPlaying()
+            },
+            onShufflePlay = { songs ->
+                if (songs.isNotEmpty()) {
+                    mediaController?.playSongs(songs.shuffled(), 0)
                     onNavigateToNowPlaying()
-                },
-                onShufflePlay = { songs ->
-                    if (songs.isNotEmpty()) {
-                        viewModel.play(songs.shuffled(), 0)
-                        onNavigateToNowPlaying()
-                    }
-                },
-                modifier = modifier,
-            )
-        }
+                }
+            },
+            modifier = modifier,
+        )
     }
 }
 
@@ -248,18 +237,17 @@ private fun TvDetailContent(
                 is UiState.Success -> {
                     if (s.data.isEmpty()) {
                         TvEmptyState(
-                            title = "No songs in this collection",
-                            message = "This album or playlist doesn't contain playable audio tracks.",
+                            title = "No tracks available",
+                            message = "This collection does not contain any playable tracks.",
                         )
                     } else {
                         LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             contentPadding = PaddingValues(bottom = 80.dp),
                         ) {
                             itemsIndexed(
                                 items = s.data,
-                                key = { index, song -> song.videoId.ifBlank { "$index" } },
+                                key = { index, song -> "${song.videoId}_$index" },
                             ) { index, song ->
                                 TvTrackRow(
                                     index = index + 1,
@@ -285,63 +273,87 @@ private fun TvTrackRow(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    val bgColor by animateColorAsState(
-        targetValue = if (isFocused) TvColors.SurfaceFocused else Color.Transparent,
-        label = "tvTrackBg",
+    val animatedBg by animateColorAsState(
+        targetValue = if (isFocused) TvColors.SurfaceFocused else TvColors.SurfaceVariant,
+        label = "trackRowBg",
     )
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
             .tvButtonFocus(
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(12.dp),
                 focusedScale = 1.02f,
                 focusedBorderColor = TvColors.BorderFocused,
-                unfocusedBorderColor = Color.Transparent,
                 onClick = onClick,
             )
-            .background(bgColor)
-            .padding(horizontal = 14.dp),
+            .background(animatedBg)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
             text = "$index",
-            color = if (isFocused) TvColors.AccentRed else TvColors.TextMuted,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = TvSFProDisplay,
-            modifier = Modifier.width(32.dp),
+            color = if (isFocused) TvColors.AccentRed else TvColors.TextMuted,
+            modifier = Modifier.width(28.dp),
         )
+
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(TvColors.Surface),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (!song.thumbnailUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(song.thumbnailUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = song.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    tint = TvColors.TextMuted,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = song.title,
-                color = if (isFocused) TvColors.AccentRed else TvColors.TextPrimary,
                 fontSize = 15.sp,
-                fontWeight = FontWeight.W600,
+                fontWeight = FontWeight.SemiBold,
                 fontFamily = TvSFProDisplay,
+                color = TvColors.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = song.artist,
-                color = TvColors.TextSecondary,
                 fontSize = 13.sp,
                 fontFamily = TvSFProDisplay,
+                color = TvColors.TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
 
-        if (song.durationSeconds > 0) {
-            val minutes = song.durationSeconds / 60
-            val seconds = song.durationSeconds % 60
+        if (!song.durationText.isNullOrBlank()) {
             Text(
-                text = String.format("%d:%02d", minutes, seconds),
-                color = TvColors.TextSecondary,
+                text = song.durationText,
                 fontSize = 13.sp,
                 fontFamily = TvSFProDisplay,
+                color = TvColors.TextMuted,
             )
         }
     }

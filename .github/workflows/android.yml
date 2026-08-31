@@ -1,6 +1,16 @@
-name: Android CI
+name: Android CI & Release
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -35,8 +45,23 @@ jobs:
     - name: Build Signed Prod Release APK
       run: ./gradlew assembleProdRelease
 
-    - name: Upload APK Artifact
+    - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: bitchord-prod-release-signed
-        path: app/build/outputs/apk/prod/release/app-prod-release.apk
+        name: BitChordTV-${{ github.run_number }}
+        path: app/build/outputs/apk/prod/release/*.apk
+        if-no-files-found: error
+
+    - name: Publish APK release
+      if: success() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        TAG="tv-build-${GITHUB_RUN_NUMBER}"
+        gh release create "$TAG" \
+          app/build/outputs/apk/prod/release/*.apk \
+          --repo "$GITHUB_REPOSITORY" \
+          --target "$GITHUB_SHA" \
+          --title "BitChord TV Build ${GITHUB_RUN_NUMBER}" \
+          --generate-notes \
+          --latest

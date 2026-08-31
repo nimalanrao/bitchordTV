@@ -80,8 +80,8 @@ fun TvSettingsScreen(
     val tvThemeId by AppSettings.tvTheme.collectAsState()
     val currentTheme = com.music.bitchord.ui.tv.personalization.AppThemeOption.fromId(tvThemeId)
 
-    val crossfadeDuration by AppSettings.crossfadeDurationSeconds.collectAsState()
-    val automixEnabled by AppSettings.automix.collectAsState()
+    val crossfadeDuration by AppSettings.crossfadeSeconds.collectAsState()
+    val automixEnabled by AppSettings.smartFadeEnabled.collectAsState()
     val syncedLyrics by AppSettings.syncedLyrics.collectAsState()
     val syllableSync by AppSettings.prioritizeSyllableSync.collectAsState()
     val discordRpc by AppSettings.discordRpcEnabled.collectAsState()
@@ -122,60 +122,81 @@ fun TvSettingsScreen(
 
             TvSettingsRow(
                 title = "Run Setup Assistant Again",
-                subtitle = "Re-launch the first-run TV customization wizard",
+                subtitle = "Reconfigure nickname, theme, and first-run defaults",
                 icon = Icons.Default.AutoAwesome,
                 onClick = onRunSetupAgain,
             )
         }
 
-        // Account & Connected Services Section
+        // Account Section
         item {
-            Spacer(modifier = Modifier.height(12.dp))
-            TvSectionHeader(title = "Account & Connected Services")
+            TvSectionHeader(title = "Account")
             Spacer(modifier = Modifier.height(6.dp))
 
-            TvSettingsRow(
-                title = if (signedIn) account?.name ?: "Signed In" else "Sign in with Google",
-                subtitle = if (signedIn) account?.email ?: "Personalized library connected" else "Connect your YouTube Music account",
-                icon = Icons.Default.Person,
-                onClick = onOpenAccountDialog,
-            )
-
-            TvSettingsRow(
-                title = "Discord Rich Presence",
-                subtitle = if (discordRpc) "Broadcasting music status to Discord" else "Off",
-                icon = Icons.Default.Tune,
-                onClick = onOpenDiscordDialog,
-            )
-
-            TvSettingsRow(
-                title = "Last.fm & ListenBrainz Scrobbling",
-                subtitle = when {
-                    lastfmEnabled && listenBrainzEnabled -> "Last.fm & ListenBrainz Active"
-                    lastfmEnabled -> "Last.fm Active"
-                    listenBrainzEnabled -> "ListenBrainz Active"
-                    else -> "Not Connected"
-                },
-                icon = Icons.Default.GraphicEq,
-                onClick = onOpenScrobbleDialog,
-            )
+            if (signedIn && account != null) {
+                TvSettingsRow(
+                    title = account?.name ?: "Signed In",
+                    subtitle = account?.email ?: "YouTube Music Connected",
+                    icon = Icons.Default.Person,
+                    onClick = onOpenAccountDialog,
+                )
+            } else {
+                TvSettingsRow(
+                    title = "Sign In with Phone QR Code",
+                    subtitle = "Scan QR code with your phone to login without typing",
+                    icon = Icons.Default.Person,
+                    onClick = onOpenAccountDialog,
+                )
+            }
         }
 
-        // Display & Refresh Rate Section
+        // TV Display & 120Hz Ultra Performance Section
         item {
-            Spacer(modifier = Modifier.height(12.dp))
-            TvSectionHeader(title = "Display & Performance")
+            TvSectionHeader(title = "Display & Motion Engine")
             Spacer(modifier = Modifier.height(6.dp))
 
+            val modeSubtitle = when (refreshPref) {
+                com.music.bitchord.ui.tv.display.TvRefreshRateMode.HIGH_REFRESH_120HZ -> "120 Hz Ultra-Smooth (8.33ms budget)"
+                com.music.bitchord.ui.tv.display.TvRefreshRateMode.CINEMATIC_MATCH -> "Cinematic Match (Direct panel sync)"
+                com.music.bitchord.ui.tv.display.TvRefreshRateMode.STANDARD_60HZ -> "Standard 60 Hz (16.67ms budget)"
+                com.music.bitchord.ui.tv.display.TvRefreshRateMode.SYSTEM_DEFAULT -> "System Default (${capabilities.currentRefreshRate.toInt()} Hz active)"
+            }
+
             TvSettingsRow(
-                title = "Interface Refresh Rate",
-                subtitle = "${refreshPref.label} • Active: ${String.format("%.1f", capabilities.actualRefreshRateHz)} Hz (${capabilities.currentPhysicalHeight}p)",
+                title = "TV Display Refresh Rate",
+                subtitle = modeSubtitle,
                 icon = Icons.Default.Speed,
                 onClick = onOpenRefreshRateDialog,
             )
         }
 
-        // Playback & Audio Engine Section
+        // Integrations Section
+        item {
+            TvSectionHeader(title = "Integrations & Scrobbling")
+            Spacer(modifier = Modifier.height(6.dp))
+
+            TvSettingsRow(
+                title = "Discord Rich Presence",
+                subtitle = if (discordRpc) "Enabled • Broadcasting playing track to Discord" else "Disabled",
+                icon = Icons.Default.GraphicEq,
+                onClick = onOpenDiscordDialog,
+            )
+
+            val scrobbleSub = when {
+                lastfmEnabled && listenBrainzEnabled -> "Last.fm and ListenBrainz connected"
+                lastfmEnabled -> "Last.fm connected"
+                listenBrainzEnabled -> "ListenBrainz connected"
+                else -> "Track your listening history across services"
+            }
+            TvSettingsRow(
+                title = "Scrobbling (Last.fm / ListenBrainz)",
+                subtitle = scrobbleSub,
+                icon = Icons.Default.MusicNote,
+                onClick = onOpenScrobbleDialog,
+            )
+        }
+
+        // Audio & Playback Engine Section
         item {
             Spacer(modifier = Modifier.height(12.dp))
             TvSectionHeader(title = "Playback & Audio Engine")
@@ -185,7 +206,7 @@ fun TvSettingsScreen(
                 title = "Automix DJ Transitions",
                 subtitle = "On-device Beat This! ONNX DSP beat-matching & tempo transitions",
                 isChecked = automixEnabled,
-                onToggle = { AppSettings.setAutomix(!automixEnabled) },
+                onToggle = { AppSettings.setSmartFadeEnabled(!automixEnabled) },
             )
 
             TvSettingsValueRow(
@@ -193,11 +214,11 @@ fun TvSettingsScreen(
                 subtitle = if (crossfadeDuration > 0) "$crossfadeDuration seconds" else "Gapless (Off)",
                 onStepDown = {
                     val next = (crossfadeDuration - 1).coerceAtLeast(0)
-                    AppSettings.setCrossfadeDurationSeconds(next)
+                    AppSettings.setCrossfadeSeconds(next)
                 },
                 onStepUp = {
                     val next = (crossfadeDuration + 1).coerceAtMost(12)
-                    AppSettings.setCrossfadeDurationSeconds(next)
+                    AppSettings.setCrossfadeSeconds(next)
                 },
             )
 
@@ -218,13 +239,12 @@ fun TvSettingsScreen(
 
         // App Info & Licenses Section
         item {
-            Spacer(modifier = Modifier.height(12.dp))
             TvSectionHeader(title = "About BitChord TV")
             Spacer(modifier = Modifier.height(6.dp))
 
             TvSettingsRow(
-                title = "BitChord TV Edition",
-                subtitle = "v0.01 by Nyxcore • GNU GPLv3",
+                title = "BitChord TV v${BuildConfig.VERSION_NAME}",
+                subtitle = "Build ${BuildConfig.VERSION_CODE} • Open Source Material You & TV UI",
                 icon = Icons.Default.Info,
                 onClick = onOpenAboutDialog,
             )
@@ -243,55 +263,51 @@ private fun TvSettingsRow(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    val bgColor by animateColorAsState(
-        targetValue = if (isFocused) TvColors.SurfaceFocused else TvColors.Surface,
-        label = "tvSettingsRowBg",
+    val animatedBg by animateColorAsState(
+        targetValue = if (isFocused) TvColors.SurfaceFocused else TvColors.SurfaceVariant,
+        label = "settingsRowBg",
     )
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(64.dp)
             .tvButtonFocus(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
                 focusedScale = 1.02f,
                 focusedBorderColor = TvColors.BorderFocused,
                 onClick = onClick,
             )
-            .background(bgColor)
-            .padding(horizontal = 18.dp),
+            .background(animatedBg)
+            .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(38.dp)
+                .size(42.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(TvColors.SurfaceVariant),
+                .background(if (isFocused) TvColors.AccentRed else TvColors.Surface),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isFocused) TvColors.AccentRed else TvColors.TextPrimary,
-                modifier = Modifier.size(20.dp),
+                tint = Color.White,
+                modifier = Modifier.size(22.dp),
             )
         }
-
-        Spacer(modifier = Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.W600,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
                 fontFamily = TvSFProDisplay,
-                color = if (isFocused) TvColors.AccentRed else TvColors.TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                color = TvColors.TextPrimary,
             )
             Text(
                 text = subtitle,
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 fontFamily = TvSFProDisplay,
                 color = TvColors.TextSecondary,
                 maxLines = 1,
@@ -302,7 +318,7 @@ private fun TvSettingsRow(
         Icon(
             imageVector = Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = TvColors.TextSecondary,
+            tint = TvColors.TextMuted,
             modifier = Modifier.size(20.dp),
         )
     }
@@ -319,38 +335,36 @@ private fun TvSettingsToggleRow(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    val bgColor by animateColorAsState(
-        targetValue = if (isFocused) TvColors.SurfaceFocused else TvColors.Surface,
-        label = "tvToggleBg",
+    val animatedBg by animateColorAsState(
+        targetValue = if (isFocused) TvColors.SurfaceFocused else TvColors.SurfaceVariant,
+        label = "settingsToggleBg",
     )
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(64.dp)
             .tvButtonFocus(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
                 focusedScale = 1.02f,
                 focusedBorderColor = TvColors.BorderFocused,
                 onClick = onToggle,
             )
-            .background(bgColor)
-            .padding(horizontal = 18.dp),
+            .background(animatedBg)
+            .padding(horizontal = 18.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.W600,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
                 fontFamily = TvSFProDisplay,
-                color = if (isFocused) TvColors.AccentRed else TvColors.TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                color = TvColors.TextPrimary,
             )
             Text(
                 text = subtitle,
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 fontFamily = TvSFProDisplay,
                 color = TvColors.TextSecondary,
                 maxLines = 1,
@@ -358,22 +372,16 @@ private fun TvSettingsToggleRow(
             )
         }
 
-        Box(
-            modifier = Modifier
-                .width(48.dp)
-                .height(26.dp)
-                .clip(RoundedCornerShape(13.dp))
-                .background(if (isChecked) TvColors.AccentRed else TvColors.SurfaceVariant)
-                .padding(3.dp),
-            contentAlignment = if (isChecked) Alignment.CenterEnd else Alignment.CenterStart,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-            )
-        }
+        Switch(
+            checked = isChecked,
+            onCheckedChange = { onToggle() },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = TvColors.AccentRed,
+                uncheckedThumbColor = TvColors.TextMuted,
+                uncheckedTrackColor = TvColors.Surface,
+            ),
+        )
     }
 }
 
@@ -388,50 +396,51 @@ private fun TvSettingsValueRow(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    val bgColor by animateColorAsState(
-        targetValue = if (isFocused) TvColors.SurfaceFocused else TvColors.Surface,
-        label = "tvValueRowBg",
+    val animatedBg by animateColorAsState(
+        targetValue = if (isFocused) TvColors.SurfaceFocused else TvColors.SurfaceVariant,
+        label = "settingsValueBg",
     )
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(64.dp)
-            .tvButtonFocus(
-                shape = RoundedCornerShape(12.dp),
-                focusedScale = 1.02f,
-                focusedBorderColor = TvColors.BorderFocused,
-            )
-            .background(bgColor)
-            .padding(horizontal = 18.dp),
+            .clip(RoundedCornerShape(14.dp))
+            .background(animatedBg)
+            .padding(horizontal = 18.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.W600,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
                 fontFamily = TvSFProDisplay,
-                color = if (isFocused) TvColors.AccentRed else TvColors.TextPrimary,
+                color = TvColors.TextPrimary,
             )
             Text(
                 text = subtitle,
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 fontFamily = TvSFProDisplay,
-                color = TvColors.TextSecondary,
+                color = TvColors.AccentRed,
+                fontWeight = FontWeight.Medium,
             )
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             TvButton(
                 text = "-",
                 onClick = onStepDown,
-                modifier = Modifier.size(36.dp),
+                isFocusedDefault = false,
             )
+
             TvButton(
                 text = "+",
                 onClick = onStepUp,
-                modifier = Modifier.size(36.dp),
+                isFocusedDefault = false,
             )
         }
     }

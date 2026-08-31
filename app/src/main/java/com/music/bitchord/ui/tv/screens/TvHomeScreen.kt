@@ -11,24 +11,30 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.media3.session.MediaController
 import com.music.bitchord.data.model.BrowseType
 import com.music.bitchord.data.model.HomeShelf
 import com.music.bitchord.data.model.ShelfItem
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.UiState
+import com.music.bitchord.playback.playSongs
 import com.music.bitchord.ui.MainViewModel
 import com.music.bitchord.ui.tv.components.TvCard
 import com.music.bitchord.ui.tv.components.TvEmptyState
 import com.music.bitchord.ui.tv.components.TvErrorState
 import com.music.bitchord.ui.tv.components.TvSectionHeader
 import com.music.bitchord.ui.tv.components.TvShelfSkeleton
+import com.music.bitchord.ui.tv.theme.TvColors
 import com.music.bitchord.ui.tv.theme.TvDimensions
+import com.music.bitchord.ui.tv.theme.TvSFProDisplay
 
 @Composable
 fun TvHomeScreen(
@@ -58,7 +64,7 @@ fun TvHomeScreen(
         is UiState.Error -> {
             TvErrorState(
                 message = state.message,
-                onRetry = { viewModel.refresh() },
+                onRetry = { viewModel.refresh(MainViewModel.Feed.HOME) },
                 modifier = modifier,
             )
         }
@@ -74,7 +80,7 @@ fun TvHomeScreen(
                 TvHomeFeed(
                     shelves = shelves,
                     onPlaySong = { song ->
-                        viewModel.play(song)
+                        mediaController?.playSongs(listOf(song), 0)
                         onNavigateToNowPlaying()
                     },
                     onNavigateToDetail = onNavigateToDetail,
@@ -93,6 +99,7 @@ private fun TvHomeFeed(
     modifier: Modifier = Modifier,
 ) {
     val nickname by com.music.bitchord.data.settings.AppSettings.tvNickname.collectAsState()
+    val verticalListState = rememberLazyListState()
 
     LazyColumn(
         state = verticalListState,
@@ -101,22 +108,25 @@ private fun TvHomeFeed(
             start = TvDimensions.SafeMarginHorizontal,
             end = TvDimensions.SafeMarginHorizontal,
             top = TvDimensions.SafeMarginVertical,
-            bottom = 100.dp, // room for global playback bar
+            bottom = 120.dp,
         ),
         verticalArrangement = Arrangement.spacedBy(TvDimensions.ShelfSpacing),
     ) {
+        // Personalized Welcome Header
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column {
                 Text(
                     text = "Welcome back, $nickname",
                     fontSize = 32.sp,
-                    fontWeight = FontWeight.W800,
+                    fontWeight = FontWeight.Bold,
                     fontFamily = TvSFProDisplay,
                     color = TvColors.TextPrimary,
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Listen now on your TV",
-                    fontSize = 14.sp,
+                    text = "Personalized mixes, trending charts, and new releases",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
                     fontFamily = TvSFProDisplay,
                     color = TvColors.TextSecondary,
                 )
@@ -125,7 +135,7 @@ private fun TvHomeFeed(
 
         items(
             items = shelves,
-            key = { shelf -> shelf.title.ifBlank { shelf.hashCode().toString() } },
+            key = { shelf -> shelf.title },
         ) { shelf ->
             TvShelfRow(
                 shelf = shelf,
@@ -143,18 +153,15 @@ private fun TvShelfRow(
     onNavigateToDetail: (browseId: String, title: String, subtitle: String, thumbnailUrl: String?, type: BrowseType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val horizontalRowState = rememberLazyListState()
+
     Column(modifier = modifier) {
-        TvSectionHeader(
-            title = shelf.title,
-            subtitle = shelf.subtitle.takeIf { it.isNotBlank() },
-        )
+        TvSectionHeader(title = shelf.title)
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        val horizontalListState = rememberLazyListState()
-
         LazyRow(
-            state = horizontalListState,
+            state = horizontalRowState,
             horizontalArrangement = Arrangement.spacedBy(TvDimensions.CardSpacing),
             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
         ) {
@@ -162,40 +169,64 @@ private fun TvShelfRow(
                 items = shelf.items,
                 key = { item -> item.videoId ?: item.browseId ?: item.title },
             ) { item ->
-                TvCard(
-                    title = item.title,
-                    subtitle = item.subtitle,
-                    artworkUrl = item.thumbnailUrl,
-                    cardWidth = 175.dp,
-                    onClick = {
-                        if (item.videoId != null) {
-                            val song = Song(
-                                videoId = item.videoId,
-                                title = item.title,
-                                artist = item.subtitle,
-                                album = null,
-                                durationSeconds = 0,
-                                thumbnailUrl = item.thumbnailUrl,
-                            )
-                            onPlaySong(song)
-                        } else if (item.browseId != null) {
-                            val browseType = when {
-                                item.browseId.startsWith("VL") || item.browseId.startsWith("PL") || item.browseId.startsWith("RDAMPL") -> BrowseType.PLAYLIST
-                                item.browseId.startsWith("MPRE") || item.browseId.startsWith("FEmusic_album") -> BrowseType.ALBUM
-                                item.browseId.startsWith("UC") || item.browseId.startsWith("FEmusic_artist") -> BrowseType.ARTIST
-                                else -> BrowseType.OTHER
-                            }
-                            onNavigateToDetail(
-                                item.browseId,
-                                item.title,
-                                item.subtitle,
-                                item.thumbnailUrl,
-                                browseType,
-                            )
-                        }
-                    },
+                TvShelfItemCard(
+                    item = item,
+                    onPlaySong = onPlaySong,
+                    onNavigateToDetail = onNavigateToDetail,
                 )
             }
         }
     }
+}
+
+@Composable
+private fun TvShelfItemCard(
+    item: ShelfItem,
+    onPlaySong: (Song) -> Unit,
+    onNavigateToDetail: (browseId: String, title: String, subtitle: String, thumbnailUrl: String?, type: BrowseType) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isTrack = item.videoId != null
+    val isArtist = item.browseId?.startsWith("UC") == true
+
+    TvCard(
+        title = item.title,
+        subtitle = item.subtitle,
+        artworkUrl = item.thumbnailUrl,
+        isCircle = isArtist,
+        badge = when {
+            isTrack -> "Song"
+            isArtist -> "Artist"
+            item.browseId?.startsWith("MPRE") == true -> "Album"
+            item.browseId?.startsWith("VL") == true -> "Playlist"
+            else -> null
+        },
+        onClick = {
+            if (isTrack && item.videoId != null) {
+                onPlaySong(
+                    Song(
+                        videoId = item.videoId,
+                        title = item.title,
+                        artist = item.subtitle,
+                        thumbnailUrl = item.thumbnailUrl,
+                    ),
+                )
+            } else if (item.browseId != null) {
+                val type = when {
+                    isArtist -> BrowseType.ARTIST
+                    item.browseId.startsWith("MPRE") -> BrowseType.ALBUM
+                    item.browseId.startsWith("VL") -> BrowseType.PLAYLIST
+                    else -> BrowseType.OTHER
+                }
+                onNavigateToDetail(
+                    item.browseId,
+                    item.title,
+                    item.subtitle,
+                    item.thumbnailUrl,
+                    type,
+                )
+            }
+        },
+        modifier = modifier,
+    )
 }
