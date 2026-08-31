@@ -72,8 +72,10 @@ The mobile experience (`MainActivity`, mobile Material 3, touch navigation, widg
 | **Synchronized Lyrics Engine** | `app/src/main/java/com/music/bitchord/ui/tv/player/LyricsSynchronizer.kt` | Millisecond-accurate binary search and word-level progress calculation. |
 | **TV Lyrics Overlay** | `app/src/main/java/com/music/bitchord/ui/tv/player/TvLyricsOverlay.kt` | 2-column split lyrics layout (38% metadata & mini controls, 62% lyrics). |
 | **TV Lyrics List** | `app/src/main/java/com/music/bitchord/ui/tv/player/TvLyricsList.kt` | Synchronized scrolling list with active line emphasis, word sync, and manual browse mode. |
-| **TV Settings Screen** | `app/src/main/java/com/music/bitchord/ui/tv/screens/TvSettingsScreen.kt` | Audio quality, Crossfade, Automix, Lyrics, Scrobbling, Discord RPC, Cache, GPL & Nyxcore info. |
-| **TV Modal Dialogs** | `app/src/main/java/com/music/bitchord/ui/tv/dialogs/TvDialogs.kt` | Cookie sign-in, Discord token, Scrobble status, Source module settings, About dialog. |
+| **TV QR Code Engine** | `app/src/main/java/com/music/bitchord/ui/tv/auth/QrCodeGenerator.kt` | Pure Kotlin ISO/IEC 18004 QR matrix encoder with Reed-Solomon error correction. |
+| **TV Local Pairing Server** | `app/src/main/java/com/music/bitchord/ui/tv/auth/TvAuthServer.kt` | Embedded HTTP server for phone-to-TV direct local network authentication. |
+| **TV QR Code View** | `app/src/main/java/com/music/bitchord/ui/tv/auth/TvQrCodeView.kt` | Vector Compose Canvas renderer for QR codes with quiet zone margins. |
+| **TV Modal Dialogs** | `app/src/main/java/com/music/bitchord/ui/tv/dialogs/TvDialogs.kt` | QR Phone-to-TV Sign In, Discord token, Scrobble status, Source module settings, About dialog. |
 | **TV Launcher Banners** | `app/src/main/res/drawable-*/tv_banner.png` | 320x180 px 16:9 high-contrast launcher banner bitmaps for all screen densities. |
 | **TV Manifest Declarations** | `app/src/main/AndroidManifest.xml` | Leanback & optional hardware features, TV activity registration, banner tag. |
 

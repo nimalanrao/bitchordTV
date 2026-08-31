@@ -42,6 +42,7 @@ BitChord features a dedicated **remote-first television interface** built from t
 - **10-Foot 16:9 Landscape Layouts**: Optimized for 720p, 1080p, and 4K displays with safe-margin protection against overscan.
 - **Collapsible Navigation Rail**: Fast, remote-friendly access to Home, Search, Library, and Settings.
 - **Television Search with System IME**: Search songs, albums, artists, and playlists with remote input and category filter chips.
+- **QR Code Phone-to-TV Sign In**: Direct local QR pairing — scan with your phone on the same Wi-Fi to link your Google / YouTube Music session cookie without remote typing.
 - **Ambient Mode & Background Playback**: Music continues playing uninterrupted during screensaver and background transitions.
 - **Universal MediaSession Integration**: Home-screen media controls and voice assistant playback commands.
 

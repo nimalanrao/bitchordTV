@@ -38,6 +38,21 @@ import com.music.bitchord.ui.tv.focus.tvButtonFocus
 import com.music.bitchord.ui.tv.theme.TvColors
 import com.music.bitchord.ui.tv.theme.TvSFProDisplay
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import com.music.bitchord.ui.tv.auth.TvAuthServer
+import com.music.bitchord.ui.tv.auth.TvQrCodeView
+import kotlinx.coroutines.launch
+
 @Composable
 fun TvAccountDialog(
     viewModel: MainViewModel,
@@ -46,43 +61,185 @@ fun TvAccountDialog(
     val signedIn by viewModel.signedIn.collectAsState()
     val account by viewModel.account.collectAsState()
 
+    var isQrMode by remember { mutableStateOf(true) }
     var cookieText by remember { mutableStateOf("") }
+    var pairingUrl by remember { mutableStateOf<String?>(null) }
+    var isJustPaired by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
+
+    // Start local pairing HTTP server when in QR mode
+    DisposableEffect(signedIn) {
+        if (!signedIn) {
+            scope.launch {
+                val serverInfo = TvAuthServer.start { receivedCookie ->
+                    viewModel.onSignedIn(receivedCookie)
+                    isJustPaired = true
+                }
+                if (serverInfo != null) {
+                    val (port, ip) = serverInfo
+                    pairingUrl = "http://$ip:$port/"
+                }
+            }
+        }
+        onDispose {
+            TvAuthServer.stop()
+        }
+    }
 
     TvDialog(
         title = if (signedIn) "Account Details" else "YouTube Music Sign In",
         onDismissRequest = onDismiss,
     ) {
-        if (signedIn && account != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (signedIn && (account != null || isJustPaired)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = Color(0xFF30D158),
+                    )
+                    Text(
+                        text = "Connected Successfully",
+                        color = Color(0xFF30D158),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = TvSFProDisplay,
+                    )
+                }
+
                 Text(
-                    text = "Name: ${account?.name}",
+                    text = "Name: ${account?.name ?: "Personal Account"}",
                     color = TvColors.TextPrimary,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontFamily = TvSFProDisplay,
                     fontWeight = FontWeight.SemiBold,
                 )
-                Text(
-                    text = "Email: ${account?.email}",
-                    color = TvColors.TextSecondary,
-                    fontSize = 14.sp,
-                    fontFamily = TvSFProDisplay,
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                if (!account?.email.isNullOrBlank()) {
+                    Text(
+                        text = "Email: ${account?.email}",
+                        color = TvColors.TextSecondary,
+                        fontSize = 13.sp,
+                        fontFamily = TvSFProDisplay,
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     TvButton(
                         text = "Sign Out",
-                        isPrimary = true,
+                        isPrimary = false,
                         onClick = {
                             viewModel.signOut()
-                            onDismiss()
+                            isJustPaired = false
                         },
+                    )
+                    TvButton(
+                        text = "Done",
+                        isPrimary = true,
+                        onClick = onDismiss,
+                    )
+                }
+            }
+        } else if (isQrMode) {
+            // QR Code Phone-to-TV Sign In Mode
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // QR Code View
+                    if (pairingUrl != null) {
+                        TvQrCodeView(
+                            content = pairingUrl!!,
+                            size = 180.dp,
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(180.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(TvColors.SurfaceVariant),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "Connecting to local Wi-Fi...",
+                                color = TvColors.TextSecondary,
+                                fontSize = 12.sp,
+                                fontFamily = TvSFProDisplay,
+                            )
+                        }
+                    }
+
+                    // Steps & Instructions
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = "Scan QR Code with Phone",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = TvSFProDisplay,
+                            color = TvColors.TextPrimary,
+                        )
+
+                        Text(
+                            text = "1. Connect phone to same Wi-Fi\n2. Scan QR or visit:\n   ${pairingUrl ?: "Waiting for network..."}\n3. Paste cookie on your phone",
+                            fontSize = 13.sp,
+                            lineHeight = 18.sp,
+                            color = TvColors.TextSecondary,
+                            fontFamily = TvSFProDisplay,
+                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(top = 4.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = TvColors.AccentRed,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Text(
+                                text = "Local & Direct • No Cloud Relay",
+                                fontSize = 11.sp,
+                                color = TvColors.AccentRed,
+                                fontFamily = TvSFProDisplay,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    TvButton(
+                        text = "Type on Remote",
+                        icon = Icons.Default.Keyboard,
+                        onClick = { isQrMode = false },
+                    )
+                    TvButton(
+                        text = "Cancel",
+                        onClick = onDismiss,
                     )
                 }
             }
         } else {
+            // Manual Remote Typing Mode
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
                     text = "Enter your YouTube Music Cookie or Session Token below for personalized library access:",
@@ -109,21 +266,28 @@ fun TvAccountDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     TvButton(
-                        text = "Cancel",
-                        onClick = onDismiss,
+                        text = "Use QR Code",
+                        icon = Icons.Default.QrCode,
+                        onClick = { isQrMode = true },
                     )
-                    TvButton(
-                        text = "Save & Connect",
-                        isPrimary = true,
-                        enabled = cookieText.isNotBlank(),
-                        onClick = {
-                            viewModel.saveAuthCookie(cookieText)
-                            onDismiss()
-                        },
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TvButton(
+                            text = "Cancel",
+                            onClick = onDismiss,
+                        )
+                        TvButton(
+                            text = "Save & Connect",
+                            isPrimary = true,
+                            enabled = cookieText.isNotBlank(),
+                            onClick = {
+                                viewModel.onSignedIn(cookieText)
+                                onDismiss()
+                            },
+                        )
+                    }
                 }
             }
         }
