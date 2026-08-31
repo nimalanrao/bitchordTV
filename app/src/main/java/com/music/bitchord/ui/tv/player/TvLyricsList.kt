@@ -26,19 +26,27 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableLongState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.data.lyrics.LyricLine
@@ -51,16 +59,19 @@ import com.music.bitchord.ui.tv.theme.AppleSpringPreset
 import com.music.bitchord.ui.tv.theme.TvColors
 import com.music.bitchord.ui.tv.theme.TvSFProDisplay
 import com.music.bitchord.ui.tv.theme.appleSpring
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
- * 1:1 Apple Music TV Lyrics List with smooth spring-physics auto-scroll
- * and proper multi-line wrapping for word-level karaoke.
+ * 1:1 Apple Music TV Lyrics with continuous smooth swept line flow,
+ * inspired by BitChord's mobile player implementation.
  */
 @Composable
 fun TvLyricsList(
     lyrics: List<LyricLine>?,
     currentPositionMs: Long,
+    isPlaying: Boolean = true,
     isLoading: Boolean,
     error: String?,
     onRetry: () -> Unit,
@@ -72,15 +83,37 @@ fun TvLyricsList(
 
     var isManualScroll by remember { mutableStateOf(false) }
 
-    val syncState = remember(lyrics, currentPositionMs) {
-        LyricsSynchronizer.synchronize(lyrics, currentPositionMs)
+    // Frame-accurate clock for smooth continuous sweep across words/characters
+    val clock = rememberTvLyricClock(currentPositionMs, isPlaying)
+
+    val activeIndex by remember(lyrics) {
+        derivedStateOf {
+            if (lyrics == null) -1
+            else lyrics.indexOfLast { it.timeMs <= clock.longValue }
+        }
     }
 
-    // Auto-scroll when in auto-follow mode with smooth spring spec
-    LaunchedEffect(syncState.activeLineIndex, isManualScroll) {
-        if (!isManualScroll && lyrics != null && syncState.activeLineIndex in lyrics.indices) {
-            val targetIndex = (syncState.activeLineIndex - 1).coerceAtLeast(0)
-            listState.animateScrollToItem(targetIndex)
+    // Auto-scroll to keep active line 1/3 down the screen with smooth physics
+    var isFirstPlaced by remember(lyrics) { mutableStateOf(false) }
+    LaunchedEffect(activeIndex, isManualScroll) {
+        if (!isManualScroll && lyrics != null && activeIndex in lyrics.indices) {
+            val viewport = snapshotFlow { listState.layoutInfo.viewportSize.height }
+                .first { it > 0 }
+            val third = viewport / 3
+            if (isFirstPlaced) {
+                listState.animateScrollToItem(activeIndex, scrollOffset = -third)
+            } else {
+                listState.scrollToItem(activeIndex, scrollOffset = -third)
+                isFirstPlaced = true
+            }
+        }
+    }
+
+    // Automatically resume auto-follow 4 seconds after D-pad browsing
+    LaunchedEffect(isManualScroll) {
+        if (isManualScroll) {
+            delay(4000)
+            isManualScroll = false
         }
     }
 
@@ -139,14 +172,14 @@ fun TvLyricsList(
                         items = lyrics,
                         key = { index, line -> "${line.timeMs}_$index" },
                     ) { index, line ->
-                        val isActive = index == syncState.activeLineIndex
-                        val isPast = index < syncState.activeLineIndex
+                        val isActive = index == activeIndex
+                        val isPast = index < activeIndex
 
-                        TvLyricLineItem(
+                        TvSweptLyricItem(
                             line = line,
+                            clock = clock,
                             isActive = isActive,
                             isPast = isPast,
-                            syncState = if (isActive) syncState else null,
                             onClick = {
                                 onSeekToTimestamp(line.timeMs)
                                 isManualScroll = false
@@ -155,7 +188,7 @@ fun TvLyricsList(
                     }
                 }
 
-                // Return to current line floating action
+                // Return to current line floating action button
                 AnimatedVisibility(
                     visible = isManualScroll,
                     enter = fadeIn(),
@@ -178,28 +211,40 @@ fun TvLyricsList(
     }
 }
 
+/**
+ * Continuous frame clock running on VSYNC for smooth lyrics sweep transitions.
+ */
 @Composable
-private fun TvLyricLineItem(
+private fun rememberTvLyricClock(positionMs: Long, isPlaying: Boolean): MutableLongState {
+    val clock = remember { mutableLongStateOf(positionMs) }
+    LaunchedEffect(positionMs, isPlaying) {
+        clock.longValue = positionMs
+        if (!isPlaying) return@LaunchedEffect
+        var previousFrame = withFrameMillis { it }
+        while (true) {
+            withFrameMillis { frame ->
+                clock.longValue += frame - previousFrame
+                previousFrame = frame
+            }
+        }
+    }
+    return clock
+}
+
+/**
+ * Individual lyric row that smoothly sweeps light across the words/letters in real time.
+ */
+@Composable
+private fun TvSweptLyricItem(
     line: LyricLine,
+    clock: MutableLongState,
     isActive: Boolean,
     isPast: Boolean,
-    syncState: LyricsSyncState?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
-
-    val textColor by animateColorAsState(
-        targetValue = when {
-            isActive -> Color.White
-            isFocused -> Color.White
-            isPast -> Color.White.copy(alpha = 0.40f)
-            else -> Color.White.copy(alpha = 0.55f)
-        },
-        animationSpec = appleSpring(AppleSpringPreset.Gentle),
-        label = "lyricTextColor",
-    )
 
     val scale by animateFloatAsState(
         targetValue = if (isActive) 1.04f else 1.0f,
@@ -210,6 +255,44 @@ private fun TvLyricLineItem(
     val fontSize = if (isActive) 36.sp else 28.sp
     val fontWeight = if (isActive) FontWeight.W800 else FontWeight.W600
 
+    var layout by remember(line) { mutableStateOf<TextLayoutResult?>(null) }
+
+    val style = TextStyle(
+        fontFamily = TvSFProDisplay,
+        fontSize = fontSize,
+        fontWeight = fontWeight,
+        lineHeight = (fontSize.value * 1.38f).sp,
+    )
+
+    val dimAlpha = when {
+        isActive -> 0.40f
+        isFocused -> 0.85f
+        isPast -> 0.30f
+        else -> 0.45f
+    }
+
+    // Continuous smooth sweep clipping logic (identical to mobile SweptLyricLine)
+    val sweepModifier = Modifier.drawWithContent {
+        val pos = clock.longValue
+        when {
+            pos >= line.endMs -> drawContent()
+            pos <= line.timeMs -> Unit
+            else -> {
+                val measured = layout
+                if (measured != null) {
+                    val revealedChars = if (line.words.isNotEmpty()) {
+                        line.revealedChars(pos)
+                    } else {
+                        val duration = (line.endMs - line.timeMs).coerceAtLeast(1000L)
+                        val fraction = (pos - line.timeMs).toFloat() / duration.toFloat()
+                        fraction.coerceIn(0f, 1f) * line.text.length
+                    }
+                    tvSweepTo(measured, revealedChars)
+                }
+            }
+        }
+    }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -217,7 +300,7 @@ private fun TvLyricLineItem(
             .tvButtonFocus(
                 shape = RoundedCornerShape(12.dp),
                 focusedScale = 1.02f,
-                focusedBorderColor = TvColors.BorderFocused,
+                focusedBorderColor = Color.White.copy(alpha = 0.7f),
                 unfocusedBorderColor = Color.Transparent,
                 onClick = onClick,
             )
@@ -232,47 +315,65 @@ private fun TvLyricLineItem(
                 color = Color.White.copy(alpha = 0.35f),
                 fontFamily = TvSFProDisplay,
             )
-        } else if (line.words.isNotEmpty() && isActive && syncState != null) {
-            // Word-level karaoke highlighting with automatic multi-line text wrapping!
-            val annotatedString = buildAnnotatedString {
-                line.words.forEachIndexed { wordIdx, word ->
-                    val isWordActive = wordIdx == syncState.activeWordIndex
-                    val isWordSung = wordIdx < syncState.activeWordIndex
+        } else {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                // Base Dimmed Layer (handles line wrapping and layout measurement)
+                Text(
+                    text = line.text,
+                    style = style,
+                    color = Color.White.copy(alpha = dimAlpha),
+                    onTextLayout = { layout = it },
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-                    val wordColor = when {
-                        isWordActive -> Color.White
-                        isWordSung -> Color.White
-                        else -> Color.White.copy(alpha = 0.50f)
-                    }
-
-                    withStyle(
-                        style = SpanStyle(
-                            color = wordColor,
-                            fontWeight = if (isWordActive || isWordSung) FontWeight.W900 else FontWeight.W600,
-                        ),
-                    ) {
-                        append("${word.text} ")
-                    }
+                // Top Lit Layer (revealed smoothly character by character via sweepTo)
+                if (isActive) {
+                    Text(
+                        text = line.text,
+                        style = style,
+                        color = Color.White,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(sweepModifier),
+                    )
                 }
             }
+        }
+    }
+}
 
-            Text(
-                text = annotatedString,
-                fontSize = fontSize,
-                fontFamily = TvSFProDisplay,
-                lineHeight = (fontSize.value * 1.35f).sp,
-                modifier = Modifier.fillMaxWidth(),
-            )
+/**
+ * Clips text horizontally to smoothly reveal up to [revealedChars] across any number of wrapped lines.
+ */
+private fun ContentDrawScope.tvSweepTo(layout: TextLayoutResult, revealedChars: Float) {
+    if (revealedChars <= 0f) return
+    val totalLength = layout.layoutInput.text.length
+    if (revealedChars >= totalLength) {
+        drawContent()
+        return
+    }
+
+    for (visualLine in 0 until layout.lineCount) {
+        val start = layout.getLineStart(visualLine)
+        if (revealedChars <= start) return
+
+        val end = layout.getLineEnd(visualLine, visibleEnd = true)
+        val right = if (revealedChars >= end) {
+            layout.getLineRight(visualLine)
         } else {
-            Text(
-                text = line.text,
-                fontSize = fontSize,
-                fontWeight = fontWeight,
-                fontFamily = TvSFProDisplay,
-                color = textColor,
-                lineHeight = (fontSize.value * 1.35f).sp,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            val charIndex = revealedChars.toInt().coerceIn(start, end)
+            val here = layout.getHorizontalPosition(charIndex, usePrimaryDirection = true)
+            val next = layout.getHorizontalPosition((charIndex + 1).coerceAtMost(end), usePrimaryDirection = true)
+            here + (next - here) * (revealedChars - charIndex)
+        }
+
+        clipRect(
+            left = layout.getLineLeft(visualLine),
+            top = layout.getLineTop(visualLine),
+            right = right,
+            bottom = layout.getLineBottom(visualLine),
+        ) {
+            this@tvSweepTo.drawContent()
         }
     }
 }

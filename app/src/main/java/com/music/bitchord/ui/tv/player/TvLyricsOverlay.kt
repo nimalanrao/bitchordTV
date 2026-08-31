@@ -178,6 +178,7 @@ fun TvLyricsOverlay(
                 TvLyricsList(
                     lyrics = lyrics,
                     currentPositionMs = currentPositionMs,
+                    isPlaying = isPlaying,
                     isLoading = isLoadingLyrics,
                     error = lyricsError,
                     onRetry = onRetryLyrics,
