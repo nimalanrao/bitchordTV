@@ -122,7 +122,7 @@ fun TvNowPlayingScreen(
                 title = song.title,
                 artist = song.artist,
                 durationMs = durationMs,
-                album = song.album,
+                album = song.albumName,
             )
         }
     }
@@ -245,9 +245,9 @@ fun TvNowPlayingScreen(
                     modifier = Modifier.fillMaxWidth(0.9f),
                 )
 
-                if (!song.album.isNullOrBlank()) {
+                if (!song.albumName.isNullOrBlank()) {
                     Text(
-                        text = song.album,
+                        text = song.albumName,
                         fontSize = 13.sp,
                         fontFamily = TvSFProDisplay,
                         color = TvColors.TextMuted,
@@ -276,7 +276,7 @@ fun TvNowPlayingScreen(
                             repeatMode = repeatMode,
                             isLiked = isLiked,
                             onToggleFavorite = {
-                                viewModel.toggleLike(song)
+                                viewModel.toggleLike(song.videoId)
                             },
                             onOpenLyrics = { sidePanel = TvNowPlayingSidePanel.LYRICS },
                             onOpenQueue = { sidePanel = TvNowPlayingSidePanel.QUEUE },

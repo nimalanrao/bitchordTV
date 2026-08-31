@@ -58,7 +58,7 @@ fun TvNowPlayingScreen(
                 title = song.title,
                 artist = song.artist,
                 durationMs = durationMs,
-                album = song.album,
+                album = song.albumName,
             )
         }
     }
@@ -121,7 +121,7 @@ fun TvNowPlayingScreen(
                             title = song.title,
                             artist = song.artist,
                             durationMs = durationMs,
-                            album = song.album,
+                            album = song.albumName,
                         )
                     },
                     onSeek = { targetMs -> mediaController?.seekTo(targetMs) },
@@ -144,7 +144,7 @@ fun TvNowPlayingScreen(
                     isLyricsActive = false,
                     hasPrevious = playerState.hasPrevious,
                     hasNext = playerState.hasNext,
-                    onToggleLike = { viewModel.toggleLike(song) },
+                    onToggleLike = { viewModel.toggleLike(song.videoId) },
                     onToggleShuffle = {
                         mediaController?.shuffleModeEnabled = !(mediaController?.shuffleModeEnabled ?: false)
                     },

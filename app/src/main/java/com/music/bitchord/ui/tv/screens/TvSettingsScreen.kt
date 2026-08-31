@@ -156,10 +156,9 @@ fun TvSettingsScreen(
             Spacer(modifier = Modifier.height(6.dp))
 
             val modeSubtitle = when (refreshPref) {
-                com.music.bitchord.ui.tv.display.TvRefreshRateMode.HIGH_REFRESH_120HZ -> "120 Hz Ultra-Smooth (8.33ms budget)"
-                com.music.bitchord.ui.tv.display.TvRefreshRateMode.CINEMATIC_MATCH -> "Cinematic Match (Direct panel sync)"
-                com.music.bitchord.ui.tv.display.TvRefreshRateMode.STANDARD_60HZ -> "Standard 60 Hz (16.67ms budget)"
-                com.music.bitchord.ui.tv.display.TvRefreshRateMode.SYSTEM_DEFAULT -> "System Default (${capabilities.currentRefreshRate.toInt()} Hz active)"
+                com.music.bitchord.ui.tv.display.TvRefreshRatePreference.ULTRA_120 -> "Ultra 120 Hz (High performance motion)"
+                com.music.bitchord.ui.tv.display.TvRefreshRatePreference.SMOOTH_60 -> "Smooth 60 Hz (Standard motion)"
+                com.music.bitchord.ui.tv.display.TvRefreshRatePreference.SYSTEM_AUTO -> "System Auto (${capabilities.actualRefreshRateHz.toInt()} Hz active)"
             }
 
             TvSettingsRow(
@@ -434,13 +433,11 @@ private fun TvSettingsValueRow(
             TvButton(
                 text = "-",
                 onClick = onStepDown,
-                isFocusedDefault = false,
             )
 
             TvButton(
                 text = "+",
                 onClick = onStepUp,
-                isFocusedDefault = false,
             )
         }
     }

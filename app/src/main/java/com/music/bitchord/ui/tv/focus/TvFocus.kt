@@ -138,7 +138,7 @@ fun Modifier.onTvKeyEvent(
 ): Modifier = onKeyEvent { event ->
     if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
 
-    when (event.nativeKeyCode) {
+    when (event.nativeKeyEvent.keyCode) {
         KeyEvent.KEYCODE_DPAD_CENTER,
         KeyEvent.KEYCODE_ENTER,
         KeyEvent.KEYCODE_NUMPAD_ENTER -> {

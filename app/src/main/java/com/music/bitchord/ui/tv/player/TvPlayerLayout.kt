@@ -93,7 +93,7 @@ fun TvPlayerLayout(
                     color = TvColors.TextSecondary,
                 )
                 Text(
-                    text = playingFromSource ?: song.album ?: song.artist,
+                    text = playingFromSource ?: song.albumName ?: song.artist,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.W600,
                     fontFamily = TvSFProDisplay,
@@ -171,7 +171,7 @@ fun TvPlayerLayout(
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
-                        text = "${song.artist} • ${song.album ?: "Single"}",
+                        text = "${song.artist} • ${song.albumName ?: "Single"}",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.W500,
                         fontFamily = TvSFProDisplay,
