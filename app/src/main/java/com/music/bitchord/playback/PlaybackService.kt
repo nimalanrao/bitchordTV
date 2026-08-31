@@ -41,6 +41,8 @@ import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.music.bitchord.MainActivity
+import com.music.bitchord.TvActivity
+import com.music.bitchord.ui.tv.DeviceType
 import com.music.bitchord.R
 import com.music.bitchord.data.Http
 import com.music.bitchord.data.LikeState
@@ -1183,17 +1185,28 @@ class PlaybackService : MediaSessionService() {
      * to go is skipped and only the plain shade notification survives. Same
      * reason the notification itself was previously un-tappable.
      */
-    private fun sessionActivity(): PendingIntent = PendingIntent.getActivity(
-        this,
-        0,
-        Intent(this, MainActivity::class.java)
-            .setAction(Intent.ACTION_MAIN)
-            .addCategory(Intent.CATEGORY_LAUNCHER)
-            // MainActivity is singleTask, so this resumes the existing task
-            // rather than stacking a second copy of the UI.
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-    )
+    private fun sessionActivity(): PendingIntent {
+        val targetClass = if (DeviceType.isTv(this)) {
+            TvActivity::class.java
+        } else {
+            MainActivity::class.java
+        }
+        val category = if (DeviceType.isTv(this)) {
+            Intent.CATEGORY_LEANBACK_LAUNCHER
+        } else {
+            Intent.CATEGORY_LAUNCHER
+        }
+        return PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, targetClass)
+                .setAction(Intent.ACTION_MAIN)
+                .addCategory(category)
+                // singleTask resumes the existing task rather than stacking duplicate UI
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+    }
 
     private fun registerCurrentPlay() {
         player?.currentMediaItem?.mediaId?.let(PlaybackTracker::onPlaying)

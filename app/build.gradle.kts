@@ -62,12 +62,10 @@ android {
         buildConfigField("String", "LASTFM_API_KEY", "\"${lastfmApiKey.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         buildConfigField("String", "LASTFM_SECRET", "\"${lastfmSecret.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
 
-        // Automix's DSP analyzer (native/analyzer). 64-bit only: minSdk 26
-        // already postdates the 64-bit requirement, so a 32-bit slice would
-        // double the native payload for devices that do not exist in the
-        // install base.
+        // Automix's DSP analyzer (native/analyzer) & universal TV support:
+        // Support arm64-v8a, armeabi-v7a for broad TV hardware (32-bit & 64-bit), and x86_64 for emulators.
         ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
         }
     }
 
@@ -212,6 +210,10 @@ dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
+
+    // ---- Android TV (Compose for TV) ----
+    implementation("androidx.tv:tv-material:1.0.0")
+    implementation("androidx.tv:tv-foundation:1.0.0-alpha12")
 
     // ---- Media playback: Media3 / ExoPlayer ----
     implementation("androidx.media3:media3-exoplayer:1.11.0")
