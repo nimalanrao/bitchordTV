@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -39,6 +40,7 @@ import com.music.bitchord.ui.tv.components.TvDialog
 import com.music.bitchord.ui.tv.focus.tvButtonFocus
 import com.music.bitchord.ui.tv.theme.TvColors
 import com.music.bitchord.ui.tv.theme.TvSFProDisplay
+import com.music.bitchord.ui.tv.personalization.getPalette
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -410,7 +412,7 @@ fun TvScrobbleDialog(
 fun TvSourcesDialog(
     onDismiss: () -> Unit,
 ) {
-    val moduleUrl by AppSettings.moduleIndexUrl.collectAsState()
+    val moduleUrl = BuildConfig.MODULE_INDEX_URL
 
     TvDialog(
         title = "Hi-Res Stream Module Sources",
@@ -640,7 +642,7 @@ fun TvThemeDialog(
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             com.music.bitchord.ui.tv.personalization.AppThemeOption.entries.forEach { theme ->
                 val isSelected = theme == currentTheme
-                val palette = com.music.bitchord.ui.tv.personalization.getPalette(theme)
+                val palette = theme.getPalette()
 
                 Row(
                     modifier = Modifier
