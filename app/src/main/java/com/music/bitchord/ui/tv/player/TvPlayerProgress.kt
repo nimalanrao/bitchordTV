@@ -1,6 +1,9 @@
 package com.music.bitchord.ui.tv.player
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -27,8 +30,8 @@ import com.music.bitchord.ui.tv.theme.TvColors
 import com.music.bitchord.ui.tv.theme.TvSFProDisplay
 
 /**
- * High-performance draw-phase seekbar.
- * Bypasses Compose layout and measure passes entirely during playback updates to guarantee 120 fps pacing.
+ * Ultra-smooth draw-phase progressive seekbar in pure white.
+ * Glides smoothly from left to right with linear frame interpolation, zero lag, and 120fps fluid response.
  */
 @Composable
 fun TvPlayerProgress(
@@ -41,12 +44,23 @@ fun TvPlayerProgress(
     val isFocused by interactionSource.collectIsFocusedAsState()
 
     val trackHeight by animateDpAsState(
-        targetValue = if (isFocused) 8.dp else 4.dp,
+        targetValue = if (isFocused) 7.dp else 4.dp,
+        animationSpec = tween(durationMillis = 150),
         label = "tvProgressHeight",
     )
 
-    val activeColor = if (isFocused) TvColors.AccentRed else Color.White
-    val bgColor = if (isFocused) TvColors.SurfaceFocused else Color(0x44FFFFFF)
+    val targetFraction = if (durationMs > 0) {
+        (currentPositionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+    } else 0f
+
+    val smoothFraction by animateFloatAsState(
+        targetValue = targetFraction,
+        animationSpec = tween(durationMillis = 250, easing = LinearEasing),
+        label = "smoothProgressFraction",
+    )
+
+    val activeColor = Color.White
+    val bgColor = if (isFocused) Color.White.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.18f)
 
     Column(
         modifier = modifier
@@ -67,16 +81,12 @@ fun TvPlayerProgress(
                 },
             ),
     ) {
-        // Draw-phase Track & Thumb Canvas
+        // Draw-phase Pure White Track & Thumb Canvas
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(24.dp),
         ) {
-            val fraction = if (durationMs > 0) {
-                (currentPositionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
-            } else 0f
-
             val h = trackHeight.toPx()
             val cy = size.height / 2f
             val top = cy - (h / 2f)
@@ -90,8 +100,8 @@ fun TvPlayerProgress(
                 cornerRadius = cornerRadius,
             )
 
-            // 2. Active Played Track
-            val playedWidth = size.width * fraction
+            // 2. Active Pure White Played Track
+            val playedWidth = size.width * smoothFraction
             if (playedWidth > 0f) {
                 drawRoundRect(
                     color = activeColor,
@@ -101,9 +111,14 @@ fun TvPlayerProgress(
                 )
             }
 
-            // 3. Focused Scrub Thumb
+            // 3. Focused Scrub Thumb with soft halo
             if (isFocused) {
-                val thumbRadius = 8.dp.toPx()
+                val thumbRadius = 7.dp.toPx()
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.25f),
+                    radius = thumbRadius * 1.5f,
+                    center = Offset(playedWidth.coerceIn(thumbRadius, size.width - thumbRadius), cy),
+                )
                 drawCircle(
                     color = Color.White,
                     radius = thumbRadius,
@@ -123,13 +138,13 @@ fun TvPlayerProgress(
                 text = formatDuration(currentPositionMs),
                 fontSize = 13.sp,
                 fontFamily = TvSFProDisplay,
-                color = if (isFocused) TvColors.TextPrimary else TvColors.TextSecondary,
+                color = if (isFocused) Color.White else Color.White.copy(alpha = 0.7f),
             )
             Text(
                 text = formatDuration(durationMs),
                 fontSize = 13.sp,
                 fontFamily = TvSFProDisplay,
-                color = if (isFocused) TvColors.TextPrimary else TvColors.TextSecondary,
+                color = if (isFocused) Color.White else Color.White.copy(alpha = 0.7f),
             )
         }
     }

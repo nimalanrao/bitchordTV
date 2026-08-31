@@ -3,6 +3,8 @@ package com.music.bitchord.ui.tv.auth
 import android.content.Context
 import android.util.Log
 import com.music.bitchord.data.YtMusicRepository
+import com.music.bitchord.data.model.SearchFilter
+import com.music.bitchord.data.model.SearchResult
 import com.music.bitchord.data.model.Song
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -191,16 +193,19 @@ object TvAuthServer {
                             sendJsonResponse(writer, "[]")
                         } else {
                             scope.launch {
-                                val results = YtMusicRepository.search(q, null).getOrDefault(emptyList())
+                                val results = YtMusicRepository.search(q, SearchFilter.SONGS).getOrDefault(emptyList())
                                 val arr = JSONArray()
                                 results.take(15).forEach { item ->
-                                    val itemObj = JSONObject().apply {
-                                        put("videoId", item.videoId ?: "")
-                                        put("title", item.title)
-                                        put("subtitle", item.subtitle ?: "")
-                                        put("thumbnailUrl", item.thumbnailUrl ?: "")
+                                    val song = (item as? SearchResult.Track)?.song
+                                    if (song != null) {
+                                        val itemObj = JSONObject().apply {
+                                            put("videoId", song.videoId)
+                                            put("title", song.title)
+                                            put("subtitle", song.artist)
+                                            put("thumbnailUrl", song.thumbnailUrl ?: "")
+                                        }
+                                        arr.put(itemObj)
                                     }
-                                    arr.put(itemObj)
                                 }
                                 sendJsonResponse(writer, arr.toString())
                             }

@@ -1,6 +1,9 @@
 package com.music.bitchord.ui.tv.player
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -17,17 +20,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -42,17 +47,17 @@ import coil3.request.crossfade
 import com.music.bitchord.data.lyrics.LyricLine
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.settings.AppSettings
+import com.music.bitchord.ui.tv.components.TvLyricsBadge
 import com.music.bitchord.ui.tv.focus.onTvKeyEvent
 import com.music.bitchord.ui.tv.theme.TvDimensions
 import com.music.bitchord.ui.tv.theme.TvSFProDisplay
 
 /**
- * 1:1 Apple Music TV Lyrics & Player Overlay matching Apple TV Reference Images 4 & 5.
+ * 1:1 Apple Music TV Synchronized Lyrics Overlay.
  *
- * - Left Column: Glowing album artwork card, song title, artist.
- * - Right Column: Giant synchronized lyrics with proper word wrapping and singing glow.
- * - Bottom Edge: 4px progress line with instant D-pad Left/Right remote seeking.
- * - Top-Right: Stats for Nerds diagnostic HUD.
+ * - Left Column: Album Art Card (~280dp), Song Title & Artist, Stats for Nerds with Info Icon, and Lyrics Badge on bottom-left.
+ * - Right Column: Ultra-smooth 6-line Lyrics Viewport (2 top unfocused, 1 middle active, 3 bottom unfocused).
+ * - Bottom: Full-width pure white seekbar with smooth linear animation.
  */
 @Composable
 fun TvLyricsOverlay(
@@ -75,9 +80,15 @@ fun TvLyricsOverlay(
 ) {
     val showNerdStats by AppSettings.showNerdStats.collectAsState()
 
-    val progressFraction = if (durationMs > 0) {
+    val targetFraction = if (durationMs > 0) {
         (currentPositionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
     } else 0f
+
+    val smoothFraction by animateFloatAsState(
+        targetValue = targetFraction,
+        animationSpec = tween(durationMillis = 250, easing = LinearEasing),
+        label = "lyricsSmoothFraction",
+    )
 
     Box(
         modifier = modifier
@@ -104,30 +115,31 @@ fun TvLyricsOverlay(
                 },
             ),
     ) {
-        // Main Screen Content: Left Art + Right Lyrics
+        // Main Content: Left Metadata & Artwork + Right 6-line Lyrics Window
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    start = TvDimensions.SafeMarginHorizontal,
-                    end = TvDimensions.SafeMarginHorizontal,
+                    start = 48.dp,
+                    end = 48.dp,
                     top = 28.dp,
-                    bottom = 32.dp,
+                    bottom = 24.dp,
                 ),
             horizontalArrangement = Arrangement.spacedBy(48.dp),
         ) {
-            // Left Column: Album Art Card + Title & Artist
+            // Left Column: Album Card, Title, Artist, Stats for Nerds, and Lyrics Logo Badge
             Column(
                 modifier = Modifier
                     .weight(0.38f)
                     .fillMaxHeight(),
                 verticalArrangement = Arrangement.Center,
             ) {
+                // Album Art Card
                 Box(
                     modifier = Modifier
                         .size(280.dp)
-                        .shadow(36.dp, RoundedCornerShape(24.dp), spotColor = Color.Black.copy(alpha = 0.8f))
-                        .clip(RoundedCornerShape(24.dp))
+                        .shadow(32.dp, RoundedCornerShape(22.dp), spotColor = Color.Black.copy(alpha = 0.85f))
+                        .clip(RoundedCornerShape(22.dp))
                         .background(Color.White.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -144,8 +156,9 @@ fun TvLyricsOverlay(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(26.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
+                // Title
                 Text(
                     text = song.title,
                     fontSize = 26.sp,
@@ -156,8 +169,9 @@ fun TvLyricsOverlay(
                     overflow = TextOverflow.Ellipsis,
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
+                // Artist
                 Text(
                     text = song.artist,
                     fontSize = 17.sp,
@@ -167,9 +181,46 @@ fun TvLyricsOverlay(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+
+                // Stats for Nerds (Clean HUD directly beside description with Info icon)
+                AnimatedVisibility(
+                    visible = showNerdStats,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(top = 10.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.Black.copy(alpha = 0.60f))
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Stream Stats",
+                            tint = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = "Opus / FLAC • 48 kHz / 24-bit • Lossless Audio",
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color.White.copy(alpha = 0.85f),
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Lyrics Logo on Bottom Left below the Album Cover
+                TvLyricsBadge(
+                    backgroundColor = Color(0xFF141414),
+                )
             }
 
-            // Right Column: Synchronized Lyrics
+            // Right Column: Synchronized 6-line Lyrics Window
             Box(
                 modifier = Modifier
                     .weight(0.62f)
@@ -187,54 +238,7 @@ fun TvLyricsOverlay(
             }
         }
 
-        // Top-Right: Stats for Nerds Overlay Card (matching Image 4)
-        AnimatedVisibility(
-            visible = showNerdStats,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 28.dp, end = TvDimensions.SafeMarginHorizontal),
-        ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.Black.copy(alpha = 0.72f))
-                    .border(
-                        1.5.dp,
-                        Brush.horizontalGradient(
-                            listOf(Color(0xFFFA2D48), Color(0xFF00E5FF)),
-                        ),
-                        RoundedCornerShape(16.dp),
-                    )
-                    .padding(horizontal = 18.dp, vertical = 12.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "STATS FOR NERDS",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.W900,
-                        fontFamily = TvSFProDisplay,
-                        color = Color(0xFFFF2D55),
-                        letterSpacing = 1.sp,
-                    )
-                    Text(
-                        text = "Codec: Opus / FLAC • 48 kHz / 24-bit",
-                        fontSize = 13.sp,
-                        fontFamily = FontFamily.Monospace,
-                        color = Color.White,
-                    )
-                    Text(
-                        text = "Bitrate: 320 kbps (Lossless Master)",
-                        fontSize = 13.sp,
-                        fontFamily = FontFamily.Monospace,
-                        color = Color.White.copy(alpha = 0.75f),
-                    )
-                }
-            }
-        }
-
-        // 4-Pixel Bottom Progress Line for Lyrics Mode
+        // Bottom Full-Width Progressive Seek Line (Pure White & Glides Smoothly Left-to-Right)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -245,12 +249,8 @@ fun TvLyricsOverlay(
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(progressFraction)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color(0xFFFF375F), Color(0xFFFA2D48)),
-                        ),
-                    ),
+                    .fillMaxWidth(smoothFraction)
+                    .background(Color.White),
             )
         }
     }

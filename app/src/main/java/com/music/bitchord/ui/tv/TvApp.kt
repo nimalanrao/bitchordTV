@@ -55,6 +55,7 @@ import coil3.request.crossfade
 import com.music.bitchord.R
 import com.music.bitchord.data.model.BrowseType
 import com.music.bitchord.playback.PlayerState
+import com.music.bitchord.playback.playSongs
 import com.music.bitchord.ui.MainViewModel
 import com.music.bitchord.ui.tv.dialogs.TvAboutDialog
 import com.music.bitchord.ui.tv.dialogs.TvAccountDialog
@@ -127,7 +128,7 @@ fun TvApp(
                     title = playerState.song?.title ?: "No Song Playing",
                     artist = playerState.song?.artist ?: "BitChord TV",
                     artworkUrl = playerState.song?.thumbnailUrl,
-                    currentPositionMs = playerState.currentPositionMs,
+                    currentPositionMs = playerState.position.positionMs,
                     durationMs = playerState.durationMs,
                 )
             }
