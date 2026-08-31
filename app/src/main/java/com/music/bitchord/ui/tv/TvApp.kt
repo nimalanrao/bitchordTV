@@ -1,7 +1,9 @@
 package com.music.bitchord.ui.tv
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -38,8 +40,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -110,10 +112,10 @@ fun TvApp(
 
         // Dialog States
         var showAccountDialog by remember { mutableStateOf(false) }
-        var showRemoteDialog by remember { mutableStateOf(false) }
         var showDiscordDialog by remember { mutableStateOf(false) }
         var showScrobbleDialog by remember { mutableStateOf(false) }
         var showSourcesDialog by remember { mutableStateOf(false) }
+        var showRefreshRateDialog by remember { mutableStateOf(false) }
         var showNicknameDialog by remember { mutableStateOf(false) }
         var showThemeDialog by remember { mutableStateOf(false) }
         var showAboutDialog by remember { mutableStateOf(false) }
@@ -173,7 +175,7 @@ fun TvApp(
                         onOpenNowPlaying = { isNowPlayingOpen = true },
                     )
 
-                    // Main Screen Content Area
+                    // Main Screen Content Area with Fast Snappy Crossfade
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -193,84 +195,90 @@ fun TvApp(
                                 onBack = { activeDetail = null },
                             )
                         } else {
-                            when (activeDestination) {
-                                TvDestination.FOR_YOU -> {
-                                    TvHomeScreen(
-                                        viewModel = viewModel,
-                                        mediaController = mediaController,
-                                        onNavigateToDetail = { browseId, title, subtitle, thumb, type ->
-                                            activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
-                                        },
-                                        onNavigateToNowPlaying = { isNowPlayingOpen = true },
-                                    )
-                                }
-                                TvDestination.LIBRARY -> {
-                                    TvLibraryScreen(
-                                        viewModel = viewModel,
-                                        onNavigateToDetail = { browseId, title, subtitle, thumb, type ->
-                                            activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
-                                        },
-                                        onNavigateToLocalMusic = {
-                                            activeDetail = DetailDestination(
-                                                "local:all",
-                                                "Local Device Audio",
-                                                "Audio files on device storage",
-                                                null,
-                                                BrowseType.OTHER,
-                                            )
-                                        },
-                                        onNavigateToDownloads = {
-                                            activeDetail = DetailDestination(
-                                                "local:downloads",
-                                                "Offline Downloads",
-                                                "Downloaded high-quality tracks",
-                                                null,
-                                                BrowseType.OTHER,
-                                            )
-                                        },
-                                        onNavigateToHistory = {
-                                            activeDetail = DetailDestination(
-                                                "FEmusic_history",
-                                                "Listening History",
-                                                "Recently played tracks",
-                                                null,
-                                                BrowseType.PLAYLIST,
-                                            )
-                                        },
-                                        onNavigateToLiked = {
-                                            activeDetail = DetailDestination(
-                                                "LM",
-                                                "Liked Music",
-                                                "Your favorites",
-                                                null,
-                                                BrowseType.PLAYLIST,
-                                            )
-                                        },
-                                    )
-                                }
-                                TvDestination.SEARCH -> {
-                                    TvSearchScreen(
-                                        viewModel = viewModel,
-                                        mediaController = mediaController,
-                                        onNavigateToDetail = { browseId, title, subtitle, thumb, type ->
-                                            activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
-                                        },
-                                        onNavigateToNowPlaying = { isNowPlayingOpen = true },
-                                    )
-                                }
-                                TvDestination.SETTINGS -> {
-                                    TvSettingsScreen(
-                                        viewModel = viewModel,
-                                        onOpenAccountDialog = { showAccountDialog = true },
-                                        onOpenRemoteDialog = { showRemoteDialog = true },
-                                        onOpenDiscordDialog = { showDiscordDialog = true },
-                                        onOpenScrobbleDialog = { showScrobbleDialog = true },
-                                        onOpenSourcesDialog = { showSourcesDialog = true },
-                                        onOpenNicknameDialog = { showNicknameDialog = true },
-                                        onOpenThemeDialog = { showThemeDialog = true },
-                                        onRunSetupAgain = { isRunningSetup = true },
-                                        onOpenAboutDialog = { showAboutDialog = true },
-                                    )
+                            Crossfade(
+                                targetState = activeDestination,
+                                animationSpec = tween(durationMillis = 140),
+                                label = "navTabCrossfade",
+                            ) { destination ->
+                                when (destination) {
+                                    TvDestination.FOR_YOU -> {
+                                        TvHomeScreen(
+                                            viewModel = viewModel,
+                                            mediaController = mediaController,
+                                            onNavigateToDetail = { browseId, title, subtitle, thumb, type ->
+                                                activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
+                                            },
+                                            onNavigateToNowPlaying = { isNowPlayingOpen = true },
+                                        )
+                                    }
+                                    TvDestination.LIBRARY -> {
+                                        TvLibraryScreen(
+                                            viewModel = viewModel,
+                                            onNavigateToDetail = { browseId, title, subtitle, thumb, type ->
+                                                activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
+                                            },
+                                            onNavigateToLocalMusic = {
+                                                activeDetail = DetailDestination(
+                                                    "local:all",
+                                                    "Local Device Audio",
+                                                    "Audio files on device storage",
+                                                    null,
+                                                    BrowseType.OTHER,
+                                                )
+                                            },
+                                            onNavigateToDownloads = {
+                                                activeDetail = DetailDestination(
+                                                    "local:downloads",
+                                                    "Offline Downloads",
+                                                    "Downloaded high-quality tracks",
+                                                    null,
+                                                    BrowseType.OTHER,
+                                                )
+                                            },
+                                            onNavigateToHistory = {
+                                                activeDetail = DetailDestination(
+                                                    "FEmusic_history",
+                                                    "Listening History",
+                                                    "Recently played tracks",
+                                                    null,
+                                                    BrowseType.PLAYLIST,
+                                                )
+                                            },
+                                            onNavigateToLiked = {
+                                                activeDetail = DetailDestination(
+                                                    "LM",
+                                                    "Liked Music",
+                                                    "Your favorites",
+                                                    null,
+                                                    BrowseType.PLAYLIST,
+                                                )
+                                            },
+                                        )
+                                    }
+                                    TvDestination.SEARCH -> {
+                                        TvSearchScreen(
+                                            viewModel = viewModel,
+                                            mediaController = mediaController,
+                                            onNavigateToDetail = { browseId, title, subtitle, thumb, type ->
+                                                activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
+                                            },
+                                            onNavigateToNowPlaying = { isNowPlayingOpen = true },
+                                        )
+                                    }
+                                    TvDestination.SETTINGS -> {
+                                        TvSettingsScreen(
+                                            viewModel = viewModel,
+                                            onOpenAccountDialog = { showAccountDialog = true },
+                                            onOpenDiscordDialog = { showDiscordDialog = true },
+                                            onOpenScrobbleDialog = { showScrobbleDialog = true },
+                                            onOpenSourcesDialog = { showSourcesDialog = true },
+                                            onOpenRefreshRateDialog = { showRefreshRateDialog = true },
+                                            onOpenNicknameDialog = { showNicknameDialog = true },
+                                            onOpenThemeDialog = { showThemeDialog = true },
+                                            onRunSetupAgain = { isRunningSetup = true },
+                                            onOpenAboutDialog = { showAboutDialog = true },
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -294,9 +302,6 @@ fun TvApp(
             if (showAccountDialog) {
                 TvAccountDialog(viewModel = viewModel, onDismiss = { showAccountDialog = false })
             }
-            if (showRemoteDialog) {
-                com.music.bitchord.ui.tv.dialogs.TvRemoteDialog(onDismiss = { showRemoteDialog = false })
-            }
             if (showDiscordDialog) {
                 TvDiscordDialog(onDismiss = { showDiscordDialog = false })
             }
@@ -305,6 +310,9 @@ fun TvApp(
             }
             if (showSourcesDialog) {
                 TvSourcesDialog(onDismiss = { showSourcesDialog = false })
+            }
+            if (showRefreshRateDialog) {
+                com.music.bitchord.ui.tv.dialogs.TvRefreshRateDialog(onDismiss = { showRefreshRateDialog = false })
             }
             if (showNicknameDialog) {
                 TvNicknameDialog(onDismiss = { showNicknameDialog = false })
@@ -321,9 +329,6 @@ fun TvApp(
 
 /**
  * Apple Music-style Top Horizontal Navigation Bar.
- * Left: BitChord brand logo with wavy bars icon.
- * Center: Instant auto-selecting tabs (For You, Library, Now Playing).
- * Right: Quick action buttons (Search, Settings).
  */
 @Composable
 private fun TvTopNavigationBar(
@@ -347,7 +352,7 @@ private fun TvTopNavigationBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        // Left: BitChord Brand Logo (Pink circle badge with 3 wavy bars + BitChord text)
+        // Left: Clean Frosted Monochrome BitChord Logo
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -356,7 +361,7 @@ private fun TvTopNavigationBar(
                 modifier = Modifier
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(palette.accentRed),
+                    .background(Color.White.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -372,12 +377,12 @@ private fun TvTopNavigationBar(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.W800,
                 fontFamily = TvSFProDisplay,
-                color = palette.textPrimary,
+                color = Color.White,
                 letterSpacing = (-0.4).sp,
             )
         }
 
-        // Center: Navigation Pill Tabs (Instant switch on D-pad focus!)
+        // Center: Navigation Pill Tabs
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(24.dp))
@@ -396,7 +401,6 @@ private fun TvTopNavigationBar(
                 TvNavPillItem(
                     label = destination.label,
                     isSelected = isSelected,
-                    onFocus = { onDestinationSelected(destination) },
                     onClick = { onDestinationSelected(destination) },
                 )
             }
@@ -405,7 +409,6 @@ private fun TvTopNavigationBar(
                 TvNavPillItem(
                     label = "Now Playing",
                     isSelected = false,
-                    onFocus = {},
                     onClick = onOpenNowPlaying,
                 )
             }
@@ -420,7 +423,6 @@ private fun TvTopNavigationBar(
                 icon = Icons.Default.Search,
                 contentDescription = "Search",
                 isSelected = activeDestination == TvDestination.SEARCH,
-                onFocus = { onDestinationSelected(TvDestination.SEARCH) },
                 onClick = { onDestinationSelected(TvDestination.SEARCH) },
             )
 
@@ -428,7 +430,6 @@ private fun TvTopNavigationBar(
                 icon = Icons.Default.Settings,
                 contentDescription = "Settings",
                 isSelected = activeDestination == TvDestination.SETTINGS,
-                onFocus = { onDestinationSelected(TvDestination.SETTINGS) },
                 onClick = { onDestinationSelected(TvDestination.SETTINGS) },
             )
         }
@@ -439,18 +440,11 @@ private fun TvTopNavigationBar(
 private fun TvNavPillItem(
     label: String,
     isSelected: Boolean,
-    onFocus: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
-    val palette = TvThemeColors.current
-
-    // Instant tab switch on focus without requiring extra click
-    LaunchedEffect(isFocused) {
-        if (isFocused) onFocus()
-    }
 
     val bgColor by animateColorAsState(
         targetValue = when {
@@ -466,7 +460,7 @@ private fun TvNavPillItem(
         targetValue = when {
             isFocused -> Color.Black
             isSelected -> Color.White
-            else -> palette.textSecondary
+            else -> Color.White.copy(alpha = 0.65f)
         },
         animationSpec = appleSpring(AppleSpringPreset.Snappy),
         label = "navPillText",
@@ -480,7 +474,10 @@ private fun TvNavPillItem(
 
     Box(
         modifier = modifier
-            .scale(scale)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(RoundedCornerShape(20.dp))
             .background(bgColor)
             .clickable(
@@ -506,48 +503,45 @@ private fun TvNavIconButton(
     icon: ImageVector,
     contentDescription: String,
     isSelected: Boolean,
-    onFocus: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
-    val palette = TvThemeColors.current
-
-    LaunchedEffect(isFocused) {
-        if (isFocused) onFocus()
-    }
 
     val bgColor by animateColorAsState(
         targetValue = when {
             isFocused -> Color.White
-            isSelected -> palette.accentRed
+            isSelected -> Color.White.copy(alpha = 0.22f)
             else -> Color.White.copy(alpha = 0.08f)
         },
         animationSpec = appleSpring(AppleSpringPreset.Snappy),
         label = "navIconBg",
     )
 
-    val iconTint by animateColorAsState(
+    val tintColor by animateColorAsState(
         targetValue = when {
             isFocused -> Color.Black
             isSelected -> Color.White
-            else -> palette.textSecondary
+            else -> Color.White.copy(alpha = 0.75f)
         },
         animationSpec = appleSpring(AppleSpringPreset.Snappy),
         label = "navIconTint",
     )
 
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.1f else 1.0f,
+        targetValue = if (isFocused) 1.08f else 1.0f,
         animationSpec = appleSpring(AppleSpringPreset.Snappy),
         label = "navIconScale",
     )
 
     Box(
         modifier = modifier
-            .size(40.dp)
-            .scale(scale)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .size(38.dp)
             .clip(CircleShape)
             .background(bgColor)
             .clickable(
@@ -560,8 +554,8 @@ private fun TvNavIconButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = iconTint,
-            modifier = Modifier.size(20.dp),
+            tint = tintColor,
+            modifier = Modifier.size(18.dp),
         )
     }
 }
@@ -575,30 +569,26 @@ private fun TvGlobalMiniPlayer(
 ) {
     val song = playerState.song ?: return
     val isPlaying = playerState.isPlaying
-    val palette = TvThemeColors.current
-
-    val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
 
     Row(
         modifier = modifier
-            .width(360.dp)
-            .height(68.dp)
             .tvButtonFocus(
-                shape = RoundedCornerShape(18.dp),
-                focusedScale = 1.04f,
-                focusedBorderColor = palette.borderFocused,
+                shape = RoundedCornerShape(16.dp),
+                focusedScale = 1.03f,
+                focusedBorderColor = Color.White,
                 onClick = onClick,
             )
-            .background(palette.surface)
-            .padding(horizontal = 14.dp),
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xE61E1E26))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(46.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(palette.surfaceVariant),
+                .size(44.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.White.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center,
         ) {
             if (!song.thumbnailUrl.isNullOrBlank()) {
@@ -614,15 +604,13 @@ private fun TvGlobalMiniPlayer(
             }
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.width(180.dp)) {
             Text(
                 text = song.title,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = TvSFProDisplay,
-                color = if (isFocused) palette.accentRed else palette.textPrimary,
+                color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -630,7 +618,7 @@ private fun TvGlobalMiniPlayer(
                 text = song.artist,
                 fontSize = 12.sp,
                 fontFamily = TvSFProDisplay,
-                color = palette.textSecondary,
+                color = Color.White.copy(alpha = 0.65f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -638,9 +626,9 @@ private fun TvGlobalMiniPlayer(
 
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .size(32.dp)
                 .clip(CircleShape)
-                .background(palette.accentRed)
+                .background(Color.White)
                 .clickable {
                     if (isPlaying) mediaController?.pause() else mediaController?.play()
                 },
@@ -648,9 +636,9 @@ private fun TvGlobalMiniPlayer(
         ) {
             Icon(
                 imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = if (isPlaying) "Pause" else "Play",
-                tint = Color.White,
-                modifier = Modifier.size(20.dp),
+                contentDescription = null,
+                tint = Color.Black,
+                modifier = Modifier.size(18.dp),
             )
         }
     }

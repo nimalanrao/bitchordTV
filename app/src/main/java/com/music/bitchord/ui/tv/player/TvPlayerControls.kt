@@ -68,18 +68,18 @@ fun TvPlayerControls(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Centered Transport Row (Items 1 to 6)
+        // Centered Transport Row
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.weight(1f),
         ) {
-            // 1. Favorite / Like
+            // 1. Favorite / Like (Pure White)
             TvTransportIconButton(
                 icon = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = "Favorite",
                 isActive = isLiked,
-                activeColor = TvColors.AccentRed,
+                activeColor = Color.White,
                 onClick = onToggleLike,
             )
 
@@ -88,6 +88,7 @@ fun TvPlayerControls(
                 icon = Icons.Default.Shuffle,
                 contentDescription = "Shuffle",
                 isActive = isShuffleActive,
+                activeColor = Color.White,
                 onClick = onToggleShuffle,
             )
 
@@ -101,7 +102,7 @@ fun TvPlayerControls(
                 onClick = onPrevious,
             )
 
-            // 4. Large Circular Play/Pause (The central anchor)
+            // 4. Large Circular Play/Pause Anchor
             TvPlayPauseAnchor(
                 isPlaying = isPlaying,
                 onClick = onPlayPause,
@@ -125,7 +126,7 @@ fun TvPlayerControls(
             )
         }
 
-        // 7. Right-aligned Show/Hide Lyrics Pill Button
+        // 7. Right-aligned Show/Hide Lyrics Pill Button (Pure White Focus)
         TvLyricsPillButton(
             isLyricsActive = isLyricsActive,
             onClick = onToggleLyrics,
@@ -142,15 +143,13 @@ private fun TvPlayPauseAnchor(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    val scale = if (isFocused) 1.08f else 1.0f
-
     Box(
         modifier = modifier
             .size(64.dp)
             .tvButtonFocus(
                 shape = CircleShape,
                 focusedScale = 1.1f,
-                focusedBorderColor = TvColors.BorderFocused,
+                focusedBorderColor = Color.White,
                 onClick = onClick,
             )
             .clip(CircleShape)
@@ -175,7 +174,7 @@ private fun TvTransportIconButton(
     size: Dp = 44.dp,
     iconSize: Dp = 22.dp,
     isActive: Boolean = false,
-    activeColor: Color = TvColors.AccentRed,
+    activeColor: Color = Color.White,
     enabled: Boolean = true,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -183,8 +182,8 @@ private fun TvTransportIconButton(
 
     val bgColor by animateColorAsState(
         targetValue = when {
-            isFocused -> TvColors.SurfaceFocused
-            isActive -> activeColor.copy(alpha = 0.2f)
+            isFocused -> Color.White.copy(alpha = 0.28f)
+            isActive -> Color.White.copy(alpha = 0.20f)
             else -> Color.Transparent
         },
         label = "transportBtnBg",
@@ -196,7 +195,7 @@ private fun TvTransportIconButton(
             .tvButtonFocus(
                 shape = CircleShape,
                 focusedScale = 1.1f,
-                focusedBorderColor = TvColors.BorderFocused,
+                focusedBorderColor = Color.White,
                 unfocusedBorderColor = Color.Transparent,
                 onClick = if (enabled) onClick else null,
             )
@@ -207,10 +206,10 @@ private fun TvTransportIconButton(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = when {
-                !enabled -> TvColors.TextMuted
+                !enabled -> Color.White.copy(alpha = 0.35f)
                 isFocused -> Color.White
                 isActive -> activeColor
-                else -> TvColors.TextPrimary
+                else -> Color.White.copy(alpha = 0.85f)
             },
             modifier = Modifier.size(iconSize),
         )
@@ -228,8 +227,8 @@ private fun TvLyricsPillButton(
 
     val bgColor by animateColorAsState(
         targetValue = when {
-            isFocused -> if (isLyricsActive) TvColors.AccentRed else TvColors.SurfaceFocused
-            isLyricsActive -> TvColors.AccentRed.copy(alpha = 0.85f)
+            isFocused -> Color.White
+            isLyricsActive -> Color.White.copy(alpha = 0.35f)
             else -> Color(0x33FFFFFF)
         },
         label = "lyricsPillBg",
@@ -240,7 +239,7 @@ private fun TvLyricsPillButton(
             .tvButtonFocus(
                 shape = RoundedCornerShape(20.dp),
                 focusedScale = 1.05f,
-                focusedBorderColor = TvColors.BorderFocused,
+                focusedBorderColor = Color.White,
                 onClick = onClick,
             )
             .background(bgColor)
@@ -251,16 +250,16 @@ private fun TvLyricsPillButton(
         Icon(
             imageVector = Icons.Default.FormatQuote,
             contentDescription = null,
-            tint = Color.White,
+            tint = if (isFocused) Color.Black else Color.White,
             modifier = Modifier.size(18.dp),
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = if (isLyricsActive) "Hide lyrics" else "Show lyrics",
-            color = Color.White,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.W600,
+            color = if (isFocused) Color.Black else Color.White,
+            fontWeight = FontWeight.Bold,
             fontFamily = TvSFProDisplay,
+            fontSize = 14.sp,
         )
     }
 }
