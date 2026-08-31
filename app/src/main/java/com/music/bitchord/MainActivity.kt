@@ -12,6 +12,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedContent
@@ -179,39 +180,43 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
+    private val viewModel: MainViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        // Before the composition, so a cold launch from a widget's artwork has
-        // the request already standing by the time BitChordApp first reads it.
+        com.music.bitchord.ui.tv.display.TvRefreshRateController.attach(this)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+
         PlayerDeepLink.consume(intent)
-        // Likewise for a link tapped or shared from another app — see [MusicLink].
         MusicLink.consume(intent)
+
         setContent {
-            val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
-            val darkTheme = when (theme) {
-                ThemeMode.SYSTEM -> isSystemInDarkTheme()
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
-            }
-            BitChordTheme(darkTheme = darkTheme) {
-                // The window's width, measured rather than asked for.
-                //
-                // `Configuration.screenWidthDp` is the wrong question here: in a
-                // freeform or desktop window it can report the display rather
-                // than the window it is actually in, and it lands a beat late
-                // when that window is dragged. The layout downstream splits in
-                // two on the strength of this number and sizes both halves from
-                // it, so a stale one is a player pane sized for a window that no
-                // longer exists and a page squeezed to a sliver to pay for it.
-                // A measured constraint cannot be stale — it is the very width
-                // the split is about to be laid out in.
-                BoxWithConstraints(Modifier.fillMaxSize()) {
-                    BitChordApp(darkTheme = darkTheme, windowWidth = maxWidth)
-                }
+            com.music.bitchord.ui.tv.theme.BitChordTvTheme {
+                val mediaController = rememberMediaController()
+                val playerState = rememberPlayerState(mediaController)
+
+                com.music.bitchord.ui.tv.TvApp(
+                    viewModel = viewModel,
+                    mediaController = mediaController,
+                    playerState = playerState,
+                )
             }
         }
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        com.music.bitchord.ui.tv.display.TvRefreshRateController.detach()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        PlayerDeepLink.consume(intent)
+        MusicLink.consume(intent)
+    }
+}
 
     /**
      * The other half of the relay. This activity is `singleTask`, so once it is

@@ -502,13 +502,65 @@ object AppSettings {
         tvRefreshRate.value = prefs.getString(KEY_TV_REFRESH_RATE, "AUTO") ?: "AUTO"
         tvNickname.value = prefs.getString(KEY_TV_NICKNAME, "Listener") ?: "Listener"
         tvTheme.value = prefs.getString(KEY_TV_THEME, "dynamic_artwork") ?: "dynamic_artwork"
+        tvFontFamily.value = prefs.getString(KEY_TV_FONT, "sf_pro") ?: "sf_pro"
+        spatialAudioEnabled.value = prefs.getBoolean(KEY_SPATIAL_AUDIO, true)
+        soundCheckEnabled.value = prefs.getBoolean(KEY_SOUND_CHECK, true)
+        addPlaylistSongsToLibrary.value = prefs.getBoolean(KEY_ADD_PLAYLIST_SONGS_TO_LIBRARY, true)
+        addFavoriteSongsToLibrary.value = prefs.getBoolean(KEY_ADD_FAVORITE_SONGS_TO_LIBRARY, true)
         tvSetupVersionCompleted.value = prefs.getInt(KEY_TV_SETUP_VERSION, 0)
     }
 
     val tvRefreshRate = MutableStateFlow("AUTO")
     val tvNickname = MutableStateFlow("Listener")
     val tvTheme = MutableStateFlow("dynamic_artwork")
+    val tvFontFamily = MutableStateFlow("sf_pro")
+    val spatialAudioEnabled = MutableStateFlow(true)
+    val soundCheckEnabled = MutableStateFlow(true)
+    val addPlaylistSongsToLibrary = MutableStateFlow(true)
+    val addFavoriteSongsToLibrary = MutableStateFlow(true)
     val tvSetupVersionCompleted = MutableStateFlow(0)
+
+    fun setTvFontFamily(fontId: String) {
+        tvFontFamily.value = fontId
+        if (this::prefs.isInitialized) {
+            prefs.edit().putString(KEY_TV_FONT, fontId).apply()
+        }
+    }
+
+    fun setSpatialAudioEnabled(enabled: Boolean) {
+        spatialAudioEnabled.value = enabled
+        if (this::prefs.isInitialized) {
+            prefs.edit().putBoolean(KEY_SPATIAL_AUDIO, enabled).apply()
+        }
+    }
+
+    fun setSoundCheckEnabled(enabled: Boolean) {
+        soundCheckEnabled.value = enabled
+        if (this::prefs.isInitialized) {
+            prefs.edit().putBoolean(KEY_SOUND_CHECK, enabled).apply()
+        }
+    }
+
+    fun setAddPlaylistSongsToLibrary(enabled: Boolean) {
+        addPlaylistSongsToLibrary.value = enabled
+        if (this::prefs.isInitialized) {
+            prefs.edit().putBoolean(KEY_ADD_PLAYLIST_SONGS_TO_LIBRARY, enabled).apply()
+        }
+    }
+
+    fun setAddFavoriteSongsToLibrary(enabled: Boolean) {
+        addFavoriteSongsToLibrary.value = enabled
+        if (this::prefs.isInitialized) {
+            prefs.edit().putBoolean(KEY_ADD_FAVORITE_SONGS_TO_LIBRARY, enabled).apply()
+        }
+    }
+
+    fun setAnimatedCanvas(enabled: Boolean) {
+        animatedCanvas.value = enabled
+        if (this::prefs.isInitialized) {
+            prefs.edit().putBoolean(KEY_ANIMATED_CANVAS, enabled).apply()
+        }
+    }
 
     fun setTvRefreshRate(value: String) {
         tvRefreshRate.value = value
@@ -1146,10 +1198,14 @@ object AppSettings {
     private const val KEY_DISCORD_BUTTON_1_VISIBLE = "discord_button_1_visible"
     private const val KEY_DISCORD_BUTTON_2_TEXT = "discord_button_2_text"
     private const val KEY_DISCORD_BUTTON_2_VISIBLE = "discord_button_2_visible"
-    private const val KEY_DISCORD_INFO_DISMISSED = "discord_info_dismissed"
     private const val KEY_TV_REFRESH_RATE = "tv_refresh_rate"
     private const val KEY_TV_NICKNAME = "tv_nickname"
     private const val KEY_TV_THEME = "tv_theme"
+    private const val KEY_TV_FONT = "tv_font_family"
+    private const val KEY_SPATIAL_AUDIO = "tv_spatial_audio"
+    private const val KEY_SOUND_CHECK = "tv_sound_check"
+    private const val KEY_ADD_PLAYLIST_SONGS_TO_LIBRARY = "tv_add_playlist_songs_to_library"
+    private const val KEY_ADD_FAVORITE_SONGS_TO_LIBRARY = "tv_add_favorite_songs_to_library"
     private const val KEY_TV_SETUP_VERSION = "tv_setup_version"
     private const val KEY_LAST_VERSION_CODE = "last_version_code"
 }

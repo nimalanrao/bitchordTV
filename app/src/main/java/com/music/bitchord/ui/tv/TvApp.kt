@@ -1,9 +1,15 @@
 package com.music.bitchord.ui.tv
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -146,153 +152,152 @@ fun TvApp(
             onDispose {}
         }
 
+        // Initialize Spatial Audio Virtualizer
+        val spatialAudio by AppSettings.spatialAudioEnabled.collectAsState()
+        LaunchedEffect(spatialAudio) {
+            com.music.bitchord.ui.tv.audio.TvSpatialAudioEngine.setEnabled(spatialAudio)
+        }
+
         Box(
             modifier = modifier
                 .fillMaxSize()
                 .background(palette.background),
         ) {
-            if (isRunningSetup) {
-                com.music.bitchord.ui.tv.onboarding.TvSetupScreen(
-                    onComplete = { isRunningSetup = false },
-                )
-            } else if (isNowPlayingOpen) {
-                TvNowPlayingScreen(
-                    viewModel = viewModel,
-                    mediaController = mediaController,
-                    playerState = playerState,
-                    onBack = { isNowPlayingOpen = false },
-                )
-            } else {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // Apple Music Top Navigation Bar
-                    TvTopNavigationBar(
-                        activeDestination = activeDestination,
-                        hasNowPlaying = playerState.song != null,
-                        onDestinationSelected = { dest ->
-                            activeDetail = null
-                            activeDestination = dest
-                        },
-                        onOpenNowPlaying = { isNowPlayingOpen = true },
-                    )
-
-                    // Main Screen Content Area with Fast Snappy Crossfade
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                    ) {
-                        if (activeDetail != null) {
-                            val detail = activeDetail!!
-                            TvDetailScreen(
-                                browseId = detail.browseId,
-                                initialTitle = detail.title,
-                                initialSubtitle = detail.subtitle,
-                                initialThumbnailUrl = detail.thumbnailUrl,
-                                type = detail.type,
-                                viewModel = viewModel,
-                                mediaController = mediaController,
-                                onNavigateToNowPlaying = { isNowPlayingOpen = true },
-                                onBack = { activeDetail = null },
+            AnimatedContent(
+                targetState = when {
+                    isRunningSetup -> "setup"
+                    isNowPlayingOpen -> "player"
+                    else -> "main"
+                },
+                transitionSpec = {
+                    if (targetState == "player") {
+                        (scaleIn(initialScale = 0.85f, animationSpec = appleSpring(AppleSpringPreset.Gentle)) + fadeIn(tween(260)))
+                            .togetherWith(scaleOut(targetScale = 0.94f, animationSpec = tween(200)) + fadeOut(tween(200)))
+                    } else if (initialState == "player") {
+                        (scaleIn(initialScale = 1.05f, animationSpec = tween(220)) + fadeIn(tween(220)))
+                            .togetherWith(scaleOut(targetScale = 0.85f, animationSpec = appleSpring(AppleSpringPreset.Gentle)) + fadeOut(tween(220)))
+                    } else {
+                        fadeIn(tween(180)).togetherWith(fadeOut(tween(180)))
+                    }
+                },
+                label = "tvAppViewTransition",
+                modifier = Modifier.fillMaxSize(),
+            ) { viewState ->
+                when (viewState) {
+                    "setup" -> {
+                        com.music.bitchord.ui.tv.onboarding.TvSetupScreen(
+                            onComplete = { isRunningSetup = false },
+                        )
+                    }
+                    "player" -> {
+                        TvNowPlayingScreen(
+                            viewModel = viewModel,
+                            mediaController = mediaController,
+                            playerState = playerState,
+                            onBack = { isNowPlayingOpen = false },
+                        )
+                    }
+                    else -> {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            // Apple Music Top Navigation Bar
+                            TvTopNavigationBar(
+                                activeDestination = activeDestination,
+                                hasNowPlaying = playerState.song != null,
+                                onDestinationSelected = { dest ->
+                                    activeDetail = null
+                                    activeDestination = dest
+                                },
+                                onOpenNowPlaying = { isNowPlayingOpen = true },
                             )
-                        } else {
-                            Crossfade(
-                                targetState = activeDestination,
-                                animationSpec = tween(durationMillis = 140),
-                                label = "navTabCrossfade",
-                            ) { destination ->
-                                when (destination) {
-                                    TvDestination.FOR_YOU -> {
-                                        TvHomeScreen(
-                                            viewModel = viewModel,
-                                            mediaController = mediaController,
-                                            onNavigateToDetail = { browseId, title, subtitle, thumb, type ->
-                                                activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
-                                            },
-                                            onNavigateToNowPlaying = { isNowPlayingOpen = true },
-                                        )
-                                    }
-                                    TvDestination.LIBRARY -> {
-                                        TvLibraryScreen(
-                                            viewModel = viewModel,
-                                            onNavigateToDetail = { browseId, title, subtitle, thumb, type ->
-                                                activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
-                                            },
-                                            onNavigateToLocalMusic = {
-                                                activeDetail = DetailDestination(
-                                                    "local:all",
-                                                    "Local Device Audio",
-                                                    "Audio files on device storage",
-                                                    null,
-                                                    BrowseType.OTHER,
+
+                            // Main Screen Content Area with Fast Snappy Crossfade
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
+                            ) {
+                                if (activeDetail != null) {
+                                    val detail = activeDetail!!
+                                    TvDetailScreen(
+                                        browseId = detail.browseId,
+                                        initialTitle = detail.title,
+                                        initialSubtitle = detail.subtitle,
+                                        initialThumbnailUrl = detail.thumbnailUrl,
+                                        type = detail.type,
+                                        viewModel = viewModel,
+                                        mediaController = mediaController,
+                                        onNavigateToNowPlaying = { isNowPlayingOpen = true },
+                                        onBack = { activeDetail = null },
+                                    )
+                                } else {
+                                    Crossfade(
+                                        targetState = activeDestination,
+                                        animationSpec = tween(durationMillis = 140),
+                                        label = "navTabCrossfade",
+                                    ) { destination ->
+                                        when (destination) {
+                                            TvDestination.FOR_YOU -> {
+                                                TvHomeScreen(
+                                                    viewModel = viewModel,
+                                                    mediaController = mediaController,
+                                                    onNavigateToDetail = { browseId, title, subtitle, thumb, type ->
+                                                        activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
+                                                    },
+                                                    onNavigateToNowPlaying = { isNowPlayingOpen = true },
                                                 )
-                                            },
-                                            onNavigateToDownloads = {
-                                                activeDetail = DetailDestination(
-                                                    "local:downloads",
-                                                    "Offline Downloads",
-                                                    "Downloaded high-quality tracks",
-                                                    null,
-                                                    BrowseType.OTHER,
+                                            }
+                                            TvDestination.LIBRARY -> {
+                                                TvLibraryScreen(
+                                                    viewModel = viewModel,
+                                                    onNavigateToDetail = { browseId, title, subtitle, thumb, type ->
+                                                        activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
+                                                    },
+                                                    onNavigateToLocalMusic = {
+                                                        activeDestination = TvDestination.FOR_YOU
+                                                    },
+                                                    onNavigateToNowPlaying = { isNowPlayingOpen = true },
                                                 )
-                                            },
-                                            onNavigateToHistory = {
-                                                activeDetail = DetailDestination(
-                                                    "FEmusic_history",
-                                                    "Listening History",
-                                                    "Recently played tracks",
-                                                    null,
-                                                    BrowseType.PLAYLIST,
+                                            }
+                                            TvDestination.SEARCH -> {
+                                                TvSearchScreen(
+                                                    viewModel = viewModel,
+                                                    onNavigateToDetail = { browseId, title, subtitle, thumb, type ->
+                                                        activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
+                                                    },
+                                                    onNavigateToNowPlaying = { isNowPlayingOpen = true },
                                                 )
-                                            },
-                                            onNavigateToLiked = {
-                                                activeDetail = DetailDestination(
-                                                    "LM",
-                                                    "Liked Music",
-                                                    "Your favorites",
-                                                    null,
-                                                    BrowseType.PLAYLIST,
+                                            }
+                                            TvDestination.SETTINGS -> {
+                                                TvSettingsScreen(
+                                                    viewModel = viewModel,
+                                                    onBack = { activeDestination = TvDestination.FOR_YOU },
+                                                    onOpenAccountDialog = { showAccountDialog = true },
+                                                    onOpenDiscordDialog = { showDiscordDialog = true },
+                                                    onOpenScrobbleDialog = { showScrobbleDialog = true },
+                                                    onOpenSourcesDialog = { showSourcesDialog = true },
+                                                    onOpenRefreshRateDialog = { showRefreshRateDialog = true },
+                                                    onOpenNicknameDialog = { showNicknameDialog = true },
+                                                    onOpenThemeDialog = { showThemeDialog = true },
+                                                    onRunSetupAgain = { isRunningSetup = true },
+                                                    onOpenAboutDialog = { showAboutDialog = true },
                                                 )
-                                            },
-                                        )
-                                    }
-                                    TvDestination.SEARCH -> {
-                                        TvSearchScreen(
-                                            viewModel = viewModel,
-                                            mediaController = mediaController,
-                                            onNavigateToDetail = { browseId, title, subtitle, thumb, type ->
-                                                activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
-                                            },
-                                            onNavigateToNowPlaying = { isNowPlayingOpen = true },
-                                        )
-                                    }
-                                    TvDestination.SETTINGS -> {
-                                        TvSettingsScreen(
-                                            viewModel = viewModel,
-                                            onOpenAccountDialog = { showAccountDialog = true },
-                                            onOpenDiscordDialog = { showDiscordDialog = true },
-                                            onOpenScrobbleDialog = { showScrobbleDialog = true },
-                                            onOpenSourcesDialog = { showSourcesDialog = true },
-                                            onOpenRefreshRateDialog = { showRefreshRateDialog = true },
-                                            onOpenNicknameDialog = { showNicknameDialog = true },
-                                            onOpenThemeDialog = { showThemeDialog = true },
-                                            onRunSetupAgain = { isRunningSetup = true },
-                                            onOpenAboutDialog = { showAboutDialog = true },
-                                        )
+                                            }
+                                        }
                                     }
                                 }
-                            }
-                        }
 
-                        // Floating Mini Playback Bar (bottom right)
-                        if (playerState.song != null && !isNowPlayingOpen) {
-                            TvGlobalMiniPlayer(
-                                playerState = playerState,
-                                mediaController = mediaController,
-                                onClick = { isNowPlayingOpen = true },
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(end = TvDimensions.SafeMarginHorizontal, bottom = 24.dp),
-                            )
+                                // Floating Mini Playback Bar (bottom right)
+                                if (playerState.song != null && !isNowPlayingOpen) {
+                                    TvGlobalMiniPlayer(
+                                        playerState = playerState,
+                                        mediaController = mediaController,
+                                        onClick = { isNowPlayingOpen = true },
+                                        modifier = Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .padding(end = TvDimensions.SafeMarginHorizontal, bottom = 24.dp),
+                                    )
+                                }
+                            }
                         }
                     }
                 }

@@ -432,7 +432,24 @@ object TvDimensions {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Theme wrapper — reacts directly to AppSettings.tvTheme for OLED / Midnight / Dark
+// Font Customization Options & CompositionLocal
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum class TvFontOption(val id: String, val title: String, val description: String, val fontFamily: FontFamily) {
+    SF_PRO("sf_pro", "Apple SF Pro Display", "Clean, refined iOS / macOS luxury typography", TvSFProDisplay),
+    GOOGLE_SANS("google_sans", "Google Sans", "Modern geometric sans-serif typeface", FontFamily.SansSerif),
+    ARIAL("arial", "Arial Classic", "Clean standard universal typography", FontFamily.Default),
+    MINECRAFT("minecraft", "Minecraft Pixel", "Retro 8-bit arcade pixelated monospace font", FontFamily.Monospace);
+
+    companion object {
+        fun fromId(id: String): TvFontOption = entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: SF_PRO
+    }
+}
+
+val LocalTvFontFamily = compositionLocalOf { TvSFProDisplay }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Theme wrapper — reacts directly to AppSettings.tvTheme & tvFontFamily
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -440,6 +457,7 @@ fun BitChordTvTheme(
     content: @Composable () -> Unit,
 ) {
     val tvThemeId by AppSettings.tvTheme.collectAsState()
+    val tvFontId by AppSettings.tvFontFamily.collectAsState()
 
     val palette = when (tvThemeId.lowercase()) {
         "pure_black", "oled", "pure_black_oled" -> TvOledPalette
@@ -447,7 +465,12 @@ fun BitChordTvTheme(
         else -> TvDarkPalette
     }
 
-    CompositionLocalProvider(LocalTvColors provides palette) {
+    val selectedFont = TvFontOption.fromId(tvFontId)
+
+    CompositionLocalProvider(
+        LocalTvColors provides palette,
+        LocalTvFontFamily provides selectedFont.fontFamily,
+    ) {
         MaterialTheme(
             colorScheme = TvColorScheme,
             typography = TvTypography,

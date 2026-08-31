@@ -467,14 +467,14 @@ fun TvAboutDialog(
                 color = TvColors.TextPrimary,
             )
             Text(
-                text = "Version 0.01 (Build 1) • TV Platform & UX by Nyxcore",
+                text = "Version 0.01 (Build 1) • TV Platform & Engineering by Nithyanantha (Nyxcore)",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = TvSFProDisplay,
-                color = TvColors.AccentRed,
+                color = Color.White,
             )
             Text(
-                text = "TV UI/UX Architecture and Remote-First Implementation engineered by Nyxcore.",
+                text = "TV UI/UX Architecture, 120Hz Rendering Engine, and Remote-First Experience engineered by Nithyanantha (Nyxcore).",
                 fontSize = 13.sp,
                 fontFamily = TvSFProDisplay,
                 color = TvColors.TextPrimary,
