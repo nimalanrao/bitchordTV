@@ -51,7 +51,7 @@ import com.music.bitchord.R
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.ui.MainViewModel
 import com.music.bitchord.ui.tv.audio.TvSpatialAudioEngine
-import com.music.bitchord.ui.tv.dialogs.TvDialog
+import com.music.bitchord.ui.tv.components.TvDialog
 import com.music.bitchord.ui.tv.focus.tvButtonFocus
 import com.music.bitchord.ui.tv.personalization.AppThemeOption
 import com.music.bitchord.ui.tv.theme.LocalTvFontFamily
@@ -528,7 +528,7 @@ private fun TvFontSelectionDialog(
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            TvFontOption.entries.forEach { option ->
+            for (option in TvFontOption.entries) {
                 val isSelected = option.id.equals(currentFontId, ignoreCase = true)
                 TvApplePillOption(
                     title = option.title,

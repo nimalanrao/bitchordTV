@@ -503,7 +503,7 @@ object AppSettings {
         tvNickname.value = prefs.getString(KEY_TV_NICKNAME, "Listener") ?: "Listener"
         tvTheme.value = prefs.getString(KEY_TV_THEME, "dynamic_artwork") ?: "dynamic_artwork"
         tvFontFamily.value = prefs.getString(KEY_TV_FONT, "sf_pro") ?: "sf_pro"
-        spatialAudioEnabled.value = prefs.getBoolean(KEY_SPATIAL_AUDIO, true)
+        spatialAudioEnabled.value = prefs.getBoolean(KEY_TV_SPATIAL_AUDIO, true)
         soundCheckEnabled.value = prefs.getBoolean(KEY_SOUND_CHECK, true)
         addPlaylistSongsToLibrary.value = prefs.getBoolean(KEY_ADD_PLAYLIST_SONGS_TO_LIBRARY, true)
         addFavoriteSongsToLibrary.value = prefs.getBoolean(KEY_ADD_FAVORITE_SONGS_TO_LIBRARY, true)
@@ -530,7 +530,7 @@ object AppSettings {
     fun setSpatialAudioEnabled(enabled: Boolean) {
         spatialAudioEnabled.value = enabled
         if (this::prefs.isInitialized) {
-            prefs.edit().putBoolean(KEY_SPATIAL_AUDIO, enabled).apply()
+            prefs.edit().putBoolean(KEY_TV_SPATIAL_AUDIO, enabled).apply()
         }
     }
 
@@ -845,11 +845,6 @@ object AppSettings {
         setLyricsSources(LyricsSource.entries.toSet())
         setLyricsSourceOrder(LyricsSource.entries)
         setPrioritizeSyllableSync(false)
-    }
-
-    fun setAnimatedCanvas(value: Boolean) {
-        animatedCanvas.value = value
-        prefs.edit().putBoolean(KEY_ANIMATED_CANVAS, value).apply()
     }
 
     fun setCanvasOverCellular(value: Boolean) {
@@ -1198,11 +1193,12 @@ object AppSettings {
     private const val KEY_DISCORD_BUTTON_1_VISIBLE = "discord_button_1_visible"
     private const val KEY_DISCORD_BUTTON_2_TEXT = "discord_button_2_text"
     private const val KEY_DISCORD_BUTTON_2_VISIBLE = "discord_button_2_visible"
+    private const val KEY_DISCORD_INFO_DISMISSED = "discord_info_dismissed"
     private const val KEY_TV_REFRESH_RATE = "tv_refresh_rate"
     private const val KEY_TV_NICKNAME = "tv_nickname"
     private const val KEY_TV_THEME = "tv_theme"
     private const val KEY_TV_FONT = "tv_font_family"
-    private const val KEY_SPATIAL_AUDIO = "tv_spatial_audio"
+    private const val KEY_TV_SPATIAL_AUDIO = "tv_spatial_audio"
     private const val KEY_SOUND_CHECK = "tv_sound_check"
     private const val KEY_ADD_PLAYLIST_SONGS_TO_LIBRARY = "tv_add_playlist_songs_to_library"
     private const val KEY_ADD_FAVORITE_SONGS_TO_LIBRARY = "tv_add_favorite_songs_to_library"

@@ -62,6 +62,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.music.bitchord.R
 import com.music.bitchord.data.model.BrowseType
+import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.playback.PlayerState
 import com.music.bitchord.playback.playSongs
 import com.music.bitchord.ui.MainViewModel
@@ -255,12 +256,15 @@ fun TvApp(
                                                     onNavigateToLocalMusic = {
                                                         activeDestination = TvDestination.FOR_YOU
                                                     },
-                                                    onNavigateToNowPlaying = { isNowPlayingOpen = true },
+                                                    onNavigateToDownloads = {},
+                                                    onNavigateToHistory = {},
+                                                    onNavigateToLiked = {},
                                                 )
                                             }
                                             TvDestination.SEARCH -> {
                                                 TvSearchScreen(
                                                     viewModel = viewModel,
+                                                    mediaController = mediaController,
                                                     onNavigateToDetail = { browseId, title, subtitle, thumb, type ->
                                                         activeDetail = DetailDestination(browseId, title, subtitle, thumb, type)
                                                     },

@@ -218,21 +218,6 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-    /**
-     * The other half of the relay. This activity is `singleTask`, so once it is
-     * running a second tap on the widget does not rebuild anything — it arrives
-     * here, and [onCreate] never runs again.
-     */
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        // Replaces what getIntent() returns, so the extra this consumes is the
-        // one that just arrived and not the one the task was started with.
-        setIntent(intent)
-        PlayerDeepLink.consume(intent)
-        MusicLink.consume(intent)
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BitChordApp(
