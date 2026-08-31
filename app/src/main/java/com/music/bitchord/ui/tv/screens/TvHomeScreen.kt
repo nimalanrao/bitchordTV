@@ -92,7 +92,7 @@ private fun TvHomeFeed(
     onNavigateToDetail: (browseId: String, title: String, subtitle: String, thumbnailUrl: String?, type: BrowseType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val verticalListState = rememberLazyListState()
+    val nickname by com.music.bitchord.data.settings.AppSettings.tvNickname.collectAsState()
 
     LazyColumn(
         state = verticalListState,
@@ -105,6 +105,24 @@ private fun TvHomeFeed(
         ),
         verticalArrangement = Arrangement.spacedBy(TvDimensions.ShelfSpacing),
     ) {
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Welcome back, $nickname",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.W800,
+                    fontFamily = TvSFProDisplay,
+                    color = TvColors.TextPrimary,
+                )
+                Text(
+                    text = "Listen now on your TV",
+                    fontSize = 14.sp,
+                    fontFamily = TvSFProDisplay,
+                    color = TvColors.TextSecondary,
+                )
+            }
+        }
+
         items(
             items = shelves,
             key = { shelf -> shelf.title.ifBlank { shelf.hashCode().toString() } },

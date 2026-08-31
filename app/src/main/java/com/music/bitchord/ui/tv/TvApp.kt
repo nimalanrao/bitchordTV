@@ -99,12 +99,17 @@ fun TvApp(
     var activeDetail by remember { mutableStateOf<DetailDestination?>(null) }
     var isNowPlayingOpen by remember { mutableStateOf(false) }
 
+    val setupVersionCompleted by com.music.bitchord.data.settings.AppSettings.tvSetupVersionCompleted.collectAsState()
+    var isRunningSetup by remember { mutableStateOf(setupVersionCompleted == 0) }
+
     // Dialog States
     var showAccountDialog by remember { mutableStateOf(false) }
     var showDiscordDialog by remember { mutableStateOf(false) }
     var showScrobbleDialog by remember { mutableStateOf(false) }
     var showSourcesDialog by remember { mutableStateOf(false) }
     var showRefreshRateDialog by remember { mutableStateOf(false) }
+    var showNicknameDialog by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
 
     Box(
@@ -112,7 +117,11 @@ fun TvApp(
             .fillMaxSize()
             .background(TvColors.Background),
     ) {
-        if (isNowPlayingOpen) {
+        if (isRunningSetup) {
+            com.music.bitchord.ui.tv.onboarding.TvSetupScreen(
+                onComplete = { isRunningSetup = false },
+            )
+        } else if (isNowPlayingOpen) {
             TvNowPlayingScreen(
                 viewModel = viewModel,
                 mediaController = mediaController,
@@ -221,6 +230,9 @@ fun TvApp(
                                     onOpenScrobbleDialog = { showScrobbleDialog = true },
                                     onOpenSourcesDialog = { showSourcesDialog = true },
                                     onOpenRefreshRateDialog = { showRefreshRateDialog = true },
+                                    onOpenNicknameDialog = { showNicknameDialog = true },
+                                    onOpenThemeDialog = { showThemeDialog = true },
+                                    onRunSetupAgain = { isRunningSetup = true },
                                     onOpenAboutDialog = { showAboutDialog = true },
                                 )
                             }
@@ -228,7 +240,7 @@ fun TvApp(
                     }
 
                     // Global Mini Playback Bar (Visible at bottom right when a song is loaded)
-                    if (playerState.song != null) {
+                    if (playerState.song != null && !isNowPlayingOpen) {
                         TvGlobalMiniPlayer(
                             playerState = playerState,
                             mediaController = mediaController,
@@ -257,6 +269,12 @@ fun TvApp(
         }
         if (showRefreshRateDialog) {
             com.music.bitchord.ui.tv.dialogs.TvRefreshRateDialog(onDismiss = { showRefreshRateDialog = false })
+        }
+        if (showNicknameDialog) {
+            com.music.bitchord.ui.tv.dialogs.TvNicknameDialog(onDismiss = { showNicknameDialog = false })
+        }
+        if (showThemeDialog) {
+            com.music.bitchord.ui.tv.dialogs.TvThemeDialog(onDismiss = { showThemeDialog = false })
         }
         if (showAboutDialog) {
             TvAboutDialog(onDismiss = { showAboutDialog = false })

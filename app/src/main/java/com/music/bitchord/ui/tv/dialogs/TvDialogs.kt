@@ -623,3 +623,173 @@ private fun TvRefreshRateOptionRow(
         }
     }
 }
+
+@Composable
+fun TvThemeDialog(
+    onDismiss: () -> Unit,
+) {
+    val currentThemeId by AppSettings.tvTheme.collectAsState()
+    val currentTheme = com.music.bitchord.ui.tv.personalization.AppThemeOption.fromId(currentThemeId)
+
+    TvDialog(
+        title = "Choose Visual Theme",
+        onDismissRequest = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            com.music.bitchord.ui.tv.personalization.AppThemeOption.entries.forEach { theme ->
+                val isSelected = theme == currentTheme
+                val palette = com.music.bitchord.ui.tv.personalization.getPalette(theme)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .tvButtonFocus(
+                            shape = RoundedCornerShape(10.dp),
+                            focusedBorderColor = TvColors.BorderFocused,
+                            onClick = {
+                                AppSettings.setTvTheme(theme.id)
+                                onDismiss()
+                            },
+                        )
+                        .background(if (isSelected) TvColors.SurfaceSelected else TvColors.SurfaceVariant)
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = theme.title,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = TvSFProDisplay,
+                                color = TvColors.TextPrimary,
+                            )
+                            if (isSelected) {
+                                Text(
+                                    text = "SELECTED",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = palette.accent,
+                                    fontFamily = TvSFProDisplay,
+                                )
+                            }
+                        }
+                        Text(
+                            text = theme.description,
+                            fontSize = 12.sp,
+                            fontFamily = TvSFProDisplay,
+                            color = TvColors.TextSecondary,
+                            lineHeight = 16.sp,
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TvButton(
+                    text = "Close",
+                    isPrimary = true,
+                    onClick = onDismiss,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TvNicknameDialog(
+    onDismiss: () -> Unit,
+) {
+    val currentSavedNickname by AppSettings.tvNickname.collectAsState()
+    var draftNickname by remember { mutableStateOf(currentSavedNickname) }
+    var cursorIndex by remember { mutableIntStateOf(draftNickname.length) }
+
+    val validation = com.music.bitchord.ui.tv.personalization.NicknamePolicy.validate(draftNickname)
+    val isValid = validation is com.music.bitchord.ui.tv.personalization.NicknameValidationResult.Valid
+    val graphemeCount = com.music.bitchord.ui.tv.personalization.NicknamePolicy.getGraphemeCount(draftNickname)
+
+    TvDialog(
+        title = "Edit TV Nickname",
+        onDismissRequest = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Display box
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(TvColors.SurfaceVariant)
+                    .padding(horizontal = 14.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = draftNickname.ifEmpty { "Enter nickname..." },
+                        color = if (draftNickname.isEmpty()) TvColors.TextMuted else Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = TvSFProDisplay,
+                    )
+                    Text(
+                        text = "$graphemeCount/${com.music.bitchord.ui.tv.personalization.NicknamePolicy.MAX_GRAPHEMES}",
+                        color = TvColors.TextMuted,
+                        fontSize = 12.sp,
+                        fontFamily = TvSFProDisplay,
+                    )
+                }
+            }
+
+            if (validation is com.music.bitchord.ui.tv.personalization.NicknameValidationResult.Invalid) {
+                Text(
+                    text = validation.reason,
+                    color = TvColors.AccentRed,
+                    fontSize = 12.sp,
+                    fontFamily = TvSFProDisplay,
+                )
+            }
+
+            // Keyboard
+            com.music.bitchord.ui.tv.keyboard.TvKeyboard(
+                text = draftNickname,
+                cursorIndex = cursorIndex,
+                onTextChange = { newText, newCursor ->
+                    draftNickname = newText
+                    cursorIndex = newCursor
+                },
+                onDone = {
+                    if (isValid) {
+                        AppSettings.setTvNickname(draftNickname)
+                        onDismiss()
+                    }
+                },
+                onOpenSystemIme = {},
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TvButton(
+                    text = "Save",
+                    isPrimary = true,
+                    enabled = isValid,
+                    onClick = {
+                        AppSettings.setTvNickname(draftNickname)
+                        onDismiss()
+                    },
+                )
+            }
+        }
+    }
+}

@@ -21,11 +21,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Speed
@@ -65,11 +67,18 @@ fun TvSettingsScreen(
     onOpenScrobbleDialog: () -> Unit,
     onOpenSourcesDialog: () -> Unit,
     onOpenRefreshRateDialog: () -> Unit,
+    onOpenNicknameDialog: () -> Unit,
+    onOpenThemeDialog: () -> Unit,
+    onRunSetupAgain: () -> Unit,
     onOpenAboutDialog: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val signedIn by viewModel.signedIn.collectAsState()
     val account by viewModel.account.collectAsState()
+
+    val tvNickname by AppSettings.tvNickname.collectAsState()
+    val tvThemeId by AppSettings.tvTheme.collectAsState()
+    val currentTheme = com.music.bitchord.ui.tv.personalization.AppThemeOption.fromId(tvThemeId)
 
     val crossfadeDuration by AppSettings.crossfadeDurationSeconds.collectAsState()
     val automixEnabled by AppSettings.automix.collectAsState()
@@ -92,8 +101,36 @@ fun TvSettingsScreen(
         ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        // Personalization Section
+        item {
+            TvSectionHeader(title = "Personalization")
+            Spacer(modifier = Modifier.height(6.dp))
+
+            TvSettingsRow(
+                title = "TV Nickname",
+                subtitle = "Greeting name: \"$tvNickname\"",
+                icon = Icons.Default.Person,
+                onClick = onOpenNicknameDialog,
+            )
+
+            TvSettingsRow(
+                title = "Visual Theme",
+                subtitle = "${currentTheme.title} • ${currentTheme.description}",
+                icon = Icons.Default.Palette,
+                onClick = onOpenThemeDialog,
+            )
+
+            TvSettingsRow(
+                title = "Run Setup Assistant Again",
+                subtitle = "Re-launch the first-run TV customization wizard",
+                icon = Icons.Default.AutoAwesome,
+                onClick = onRunSetupAgain,
+            )
+        }
+
         // Account & Connected Services Section
         item {
+            Spacer(modifier = Modifier.height(12.dp))
             TvSectionHeader(title = "Account & Connected Services")
             Spacer(modifier = Modifier.height(6.dp))
 

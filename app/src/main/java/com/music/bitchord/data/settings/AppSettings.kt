@@ -500,14 +500,47 @@ object AppSettings {
         discordButton2Visible.value = prefs.getBoolean(KEY_DISCORD_BUTTON_2_VISIBLE, true)
         discordInfoDismissed.value = prefs.getBoolean(KEY_DISCORD_INFO_DISMISSED, false)
         tvRefreshRate.value = prefs.getString(KEY_TV_REFRESH_RATE, "AUTO") ?: "AUTO"
+        tvNickname.value = prefs.getString(KEY_TV_NICKNAME, "Listener") ?: "Listener"
+        tvTheme.value = prefs.getString(KEY_TV_THEME, "dynamic_artwork") ?: "dynamic_artwork"
+        tvSetupVersionCompleted.value = prefs.getInt(KEY_TV_SETUP_VERSION, 0)
     }
 
     val tvRefreshRate = MutableStateFlow("AUTO")
+    val tvNickname = MutableStateFlow("Listener")
+    val tvTheme = MutableStateFlow("dynamic_artwork")
+    val tvSetupVersionCompleted = MutableStateFlow(0)
 
     fun setTvRefreshRate(value: String) {
         tvRefreshRate.value = value
         if (this::prefs.isInitialized) {
             prefs.edit().putString(KEY_TV_REFRESH_RATE, value).apply()
+        }
+    }
+
+    fun setTvPersonalization(nickname: String, themeId: String, version: Int = 1) {
+        tvNickname.value = nickname
+        tvTheme.value = themeId
+        tvSetupVersionCompleted.value = version
+        if (this::prefs.isInitialized) {
+            prefs.edit()
+                .putString(KEY_TV_NICKNAME, nickname)
+                .putString(KEY_TV_THEME, themeId)
+                .putInt(KEY_TV_SETUP_VERSION, version)
+                .apply()
+        }
+    }
+
+    fun setTvNickname(nickname: String) {
+        tvNickname.value = nickname
+        if (this::prefs.isInitialized) {
+            prefs.edit().putString(KEY_TV_NICKNAME, nickname).apply()
+        }
+    }
+
+    fun setTvTheme(themeId: String) {
+        tvTheme.value = themeId
+        if (this::prefs.isInitialized) {
+            prefs.edit().putString(KEY_TV_THEME, themeId).apply()
         }
     }
 
@@ -1115,6 +1148,9 @@ object AppSettings {
     private const val KEY_DISCORD_BUTTON_2_VISIBLE = "discord_button_2_visible"
     private const val KEY_DISCORD_INFO_DISMISSED = "discord_info_dismissed"
     private const val KEY_TV_REFRESH_RATE = "tv_refresh_rate"
+    private const val KEY_TV_NICKNAME = "tv_nickname"
+    private const val KEY_TV_THEME = "tv_theme"
+    private const val KEY_TV_SETUP_VERSION = "tv_setup_version"
     private const val KEY_LAST_VERSION_CODE = "last_version_code"
 }
 
