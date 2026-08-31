@@ -373,7 +373,7 @@ private fun TvTopNavigationBar(
             }
 
             Text(
-                text = "BitChord",
+                text = "BitChord TV",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.W800,
                 fontFamily = TvSFProDisplay,

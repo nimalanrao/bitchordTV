@@ -1,28 +1,19 @@
 package com.music.bitchord.ui.tv.player
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.LinearEasing
+import android.os.Build
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,12 +24,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
@@ -48,25 +38,23 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.data.lyrics.LyricLine
-import com.music.bitchord.ui.tv.components.TvButton
 import com.music.bitchord.ui.tv.components.TvEmptyState
 import com.music.bitchord.ui.tv.components.TvErrorState
 import com.music.bitchord.ui.tv.focus.onTvKeyEvent
 import com.music.bitchord.ui.tv.theme.AppleSpringPreset
 import com.music.bitchord.ui.tv.theme.TvSFProDisplay
 import com.music.bitchord.ui.tv.theme.appleSpring
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 
 /**
- * 1:1 Apple Music TV Progressive Flowing Lyrics with hardware-accelerated syllable sweep.
+ * 1:1 Apple Music TV Lyrics Viewport matching Photo 2:
  *
- * Smooth progressive lyrics sweep: words and syllables light up continuously in bright glowing
- * white as the vocal progress flows from left to right.
+ * - 2 Unfocused Lyrics on Top (~40% blur/dim)
+ * - 1 Focused Singing Lyric in Middle (Crystal sharp, bold, glowing, progressive flow sweep)
+ * - 3 Unfocused Lyrics on Bottom (~20% blur/dim)
  */
 @Composable
 fun TvLyricsList(
@@ -104,11 +92,7 @@ fun TvLyricsList(
         return
     }
 
-    val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
-    var isManualScroll by remember { mutableStateOf(false) }
-
-    // Smooth VSYNC progressive frame clock for real-time syllable sweep
+    // Microsecond VSYNC clock for real-time progressive syllable sweep
     val clock = rememberTvLyricClock(currentPositionMs, isPlaying)
 
     val activeIndex by remember(lyrics, currentPositionMs) {
@@ -118,99 +102,94 @@ fun TvLyricsList(
         }
     }
 
-    // Auto-scroll to center active line smoothly
-    var isFirstPlaced by remember(lyrics) { mutableStateOf(false) }
-    LaunchedEffect(activeIndex, isManualScroll) {
-        if (!isManualScroll && activeIndex in lyrics.indices) {
-            val viewport = snapshotFlow { listState.layoutInfo.viewportSize.height }
-                .first { it > 0 }
-            val third = viewport / 3
-            if (isFirstPlaced) {
-                listState.animateScrollToItem(activeIndex, scrollOffset = -third)
-            } else {
-                listState.scrollToItem(activeIndex, scrollOffset = -third)
-                isFirstPlaced = true
-            }
-        }
-    }
-
-    // Auto-return to active line after manual D-pad browsing
-    LaunchedEffect(isManualScroll) {
-        if (isManualScroll) {
-            delay(4000)
-            isManualScroll = false
-        }
-    }
-
-    Box(
+    // 6-Line Structured Viewport
+    Column(
         modifier = modifier
             .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 24.dp)
             .focusable()
             .onTvKeyEvent(
                 onUp = {
-                    isManualScroll = true
-                    scope.launch {
-                        val current = listState.firstVisibleItemIndex
-                        listState.animateScrollToItem((current - 1).coerceAtLeast(0))
-                    }
+                    val prev = (activeIndex - 1).coerceAtLeast(0)
+                    onSeekToTimestamp(lyrics[prev].timeMs)
                     true
                 },
                 onDown = {
-                    isManualScroll = true
-                    scope.launch {
-                        val current = listState.firstVisibleItemIndex
-                        listState.animateScrollToItem((current + 1).coerceAtMost(lyrics.lastIndex))
-                    }
+                    val next = (activeIndex + 1).coerceAtMost(lyrics.lastIndex)
+                    onSeekToTimestamp(lyrics[next].timeMs)
                     true
                 },
             ),
+        verticalArrangement = Arrangement.SpaceEvenly,
+        horizontalAlignment = Alignment.Start,
     ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = 100.dp, bottom = 180.dp),
-            verticalArrangement = Arrangement.spacedBy(26.dp),
-        ) {
-            itemsIndexed(
-                items = lyrics,
-                key = { index, line -> "${line.timeMs}_$index" },
-            ) { index, line ->
-                val isActive = index == activeIndex
-                val isPast = index < activeIndex
+        // Line -2: Top Unfocused 1 (40% blur/dim)
+        val lineMinus2 = lyrics.getOrNull(activeIndex - 2)
+        TvBlurLyricLineSlot(
+            line = lineMinus2,
+            alpha = 0.35f,
+            blurRadius = 3.dp,
+            fontSize = 22,
+            fontWeight = FontWeight.Medium,
+            onClick = { lineMinus2?.let { onSeekToTimestamp(it.timeMs) } },
+        )
 
-                TvProgressiveLyricLine(
-                    line = line,
-                    clock = clock,
-                    isActive = isActive,
-                    isPast = isPast,
-                    onClick = {
-                        onSeekToTimestamp(line.timeMs)
-                        isManualScroll = false
-                    },
-                )
-            }
-        }
+        // Line -1: Top Unfocused 2 (40% blur/dim)
+        val lineMinus1 = lyrics.getOrNull(activeIndex - 1)
+        TvBlurLyricLineSlot(
+            line = lineMinus1,
+            alpha = 0.45f,
+            blurRadius = 2.dp,
+            fontSize = 24,
+            fontWeight = FontWeight.Medium,
+            onClick = { lineMinus1?.let { onSeekToTimestamp(it.timeMs) } },
+        )
 
-        // Return button if user browsed away
-        AnimatedVisibility(
-            visible = isManualScroll,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 24.dp, end = 24.dp),
-        ) {
-            TvButton(
-                text = "Return to current line",
-                icon = Icons.Default.KeyboardArrowDown,
-                onClick = { isManualScroll = false },
-            )
-        }
+        // Line 0: ACTIVE FOCUSED LINE (Crystal sharp, 0% blur, bold white, glowing progressive sweep)
+        val activeLine = lyrics.getOrNull(activeIndex)
+        TvActiveSweptLyricLine(
+            line = activeLine,
+            clock = clock,
+            onClick = { activeLine?.let { onSeekToTimestamp(it.timeMs) } },
+        )
+
+        // Line +1: Bottom Unfocused 1 (20% blur/dim)
+        val linePlus1 = lyrics.getOrNull(activeIndex + 1)
+        TvBlurLyricLineSlot(
+            line = linePlus1,
+            alpha = 0.50f,
+            blurRadius = 1.5.dp,
+            fontSize = 24,
+            fontWeight = FontWeight.Medium,
+            onClick = { linePlus1?.let { onSeekToTimestamp(it.timeMs) } },
+        )
+
+        // Line +2: Bottom Unfocused 2 (20% blur/dim)
+        val linePlus2 = lyrics.getOrNull(activeIndex + 2)
+        TvBlurLyricLineSlot(
+            line = linePlus2,
+            alpha = 0.35f,
+            blurRadius = 2.dp,
+            fontSize = 22,
+            fontWeight = FontWeight.Medium,
+            onClick = { linePlus2?.let { onSeekToTimestamp(it.timeMs) } },
+        )
+
+        // Line +3: Bottom Unfocused 3 (20% blur/dim)
+        val linePlus3 = lyrics.getOrNull(activeIndex + 3)
+        TvBlurLyricLineSlot(
+            line = linePlus3,
+            alpha = 0.22f,
+            blurRadius = 3.dp,
+            fontSize = 19,
+            fontWeight = FontWeight.Medium,
+            onClick = { linePlus3?.let { onSeekToTimestamp(it.timeMs) } },
+        )
     }
 }
 
 /**
- * VSYNC Frame Clock for microsecond-precise progressive lyrics sweeping.
+ * VSYNC Frame Clock for progressive real-time sweeping.
  */
 @Composable
 private fun rememberTvLyricClock(positionMs: Long, isPlaying: Boolean): MutableLongState {
@@ -230,44 +209,110 @@ private fun rememberTvLyricClock(positionMs: Long, isPlaying: Boolean): MutableL
 }
 
 /**
- * Progressive swept lyric line that lights up syllable by syllable.
+ * Unfocused blurred lyric line slot.
  */
 @Composable
-private fun TvProgressiveLyricLine(
-    line: LyricLine,
-    clock: MutableLongState,
-    isActive: Boolean,
-    isPast: Boolean,
+private fun TvBlurLyricLineSlot(
+    line: LyricLine?,
+    alpha: Float,
+    blurRadius: Dp,
+    fontSize: Int,
+    fontWeight: FontWeight,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    val scale by animateFloatAsState(
-        targetValue = if (isActive) 1.05f else 1.0f,
-        animationSpec = appleSpring(AppleSpringPreset.Gentle),
-        label = "lyricScale",
-    )
+    val text = when {
+        line == null -> ""
+        line.isGap -> "♪  ♪  ♪"
+        else -> line.text
+    }
 
-    val fontSize = if (isActive) 36.sp else 28.sp
-    val fontWeight = if (isActive) FontWeight.W800 else FontWeight.W600
+    val blurModifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && blurRadius > 0.dp) {
+        Modifier.blur(blurRadius)
+    } else Modifier
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(vertical = 4.dp)
+            .then(blurModifier),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        if (text.isNotEmpty()) {
+            Text(
+                text = text,
+                fontSize = fontSize.sp,
+                lineHeight = (fontSize * 1.32f).sp,
+                fontWeight = fontWeight,
+                fontFamily = TvSFProDisplay,
+                color = Color.White.copy(alpha = if (isFocused) 0.95f else alpha),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+/**
+ * Active singing line with crystal sharp focus and smooth progressive syllable sweep.
+ */
+@Composable
+private fun TvActiveSweptLyricLine(
+    line: LyricLine?,
+    clock: MutableLongState,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (line == null) return
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = 1.03f,
+        animationSpec = appleSpring(AppleSpringPreset.Gentle),
+        label = "activeLyricScale",
+    )
 
     val style = TextStyle(
         fontFamily = TvSFProDisplay,
-        fontSize = fontSize,
-        fontWeight = fontWeight,
-        lineHeight = (fontSize.value * 1.36f).sp,
+        fontSize = 34.sp,
+        fontWeight = FontWeight.W800,
+        lineHeight = 44.sp,
     )
 
-    val baseAlpha = when {
-        isActive -> 0.38f
-        isFocused -> 0.90f
-        isPast -> 0.28f
-        else -> 0.45f
+    var layout by remember(line) { mutableStateOf<TextLayoutResult?>(null) }
+
+    val sweepModifier = Modifier.drawWithContent {
+        val pos = clock.longValue
+        when {
+            pos >= line.endMs -> drawContent()
+            pos <= line.timeMs -> Unit
+            else -> {
+                val measured = layout
+                if (measured != null) {
+                    val revealedChars = if (line.words.isNotEmpty()) {
+                        line.revealedChars(pos)
+                    } else {
+                        val duration = (line.endMs - line.timeMs).coerceAtLeast(1000L)
+                        val fraction = (pos - line.timeMs).toFloat() / duration.toFloat()
+                        fraction.coerceIn(0f, 1f) * line.text.length
+                    }
+                    tvProgressiveSweep(measured, revealedChars)
+                }
+            }
+        }
     }
 
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .graphicsLayer {
@@ -280,70 +325,36 @@ private fun TvProgressiveLyricLine(
                 indication = null,
                 onClick = onClick,
             )
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(vertical = 6.dp),
+        contentAlignment = Alignment.CenterStart,
     ) {
         if (line.isGap) {
             Text(
                 text = "♪  ♪  ♪",
-                fontSize = 24.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White.copy(alpha = 0.35f),
+                color = Color.White,
                 fontFamily = TvSFProDisplay,
             )
-        } else if (!isActive) {
-            // Static Line
+        } else {
+            // Dim base text (38% opacity)
             Text(
                 text = line.text,
                 style = style,
-                color = Color.White.copy(alpha = baseAlpha),
+                color = Color.White.copy(alpha = 0.38f),
+                onTextLayout = { layout = it },
                 modifier = Modifier.fillMaxWidth(),
             )
-        } else {
-            // Active Singing Line: Continuous Syllable Flow Sweep
-            var layout by remember(line) { mutableStateOf<TextLayoutResult?>(null) }
 
-            val sweepModifier = Modifier.drawWithContent {
-                val pos = clock.longValue
-                when {
-                    pos >= line.endMs -> drawContent()
-                    pos <= line.timeMs -> Unit
-                    else -> {
-                        val measured = layout
-                        if (measured != null) {
-                            val revealedChars = if (line.words.isNotEmpty()) {
-                                line.revealedChars(pos)
-                            } else {
-                                val duration = (line.endMs - line.timeMs).coerceAtLeast(1000L)
-                                val fraction = (pos - line.timeMs).toFloat() / duration.toFloat()
-                                fraction.coerceIn(0f, 1f) * line.text.length
-                            }
-                            tvProgressiveSweep(measured, revealedChars)
-                        }
-                    }
-                }
-            }
-
-            Box(modifier = Modifier.fillMaxWidth()) {
-                // Dim base text
-                Text(
-                    text = line.text,
-                    style = style,
-                    color = Color.White.copy(alpha = baseAlpha),
-                    onTextLayout = { layout = it },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                // Bright glowing progressive swept text
-                Text(
-                    text = line.text,
-                    style = style,
-                    color = Color.White,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .then(sweepModifier),
-                )
-            }
+            // Bright progressive white text revealed smoothly across syllables
+            Text(
+                text = line.text,
+                style = style,
+                color = Color.White,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(sweepModifier),
+            )
         }
     }
 }

@@ -101,6 +101,9 @@ fun TvNowPlayingScreen(
             isLyricsMode = isLyricsActive,
         )
 
+        val previousSong = if (playerState.queueIndex > 0) playerState.queue.getOrNull(playerState.queueIndex - 1) else null
+        val nextSong = if (playerState.queueIndex < playerState.queue.lastIndex) playerState.queue.getOrNull(playerState.queueIndex + 1) else null
+
         // View Mode: Standard Cinematic Player vs. Full Synchronized Lyrics Layout
         Crossfade(
             targetState = isLyricsActive,
@@ -144,6 +147,8 @@ fun TvNowPlayingScreen(
                     isLyricsActive = false,
                     hasPrevious = playerState.hasPrevious,
                     hasNext = playerState.hasNext,
+                    previousSong = previousSong,
+                    nextSong = nextSong,
                     onToggleLike = { viewModel.toggleLike(song.videoId) },
                     onToggleShuffle = {
                         mediaController?.shuffleModeEnabled = !(mediaController?.shuffleModeEnabled ?: false)

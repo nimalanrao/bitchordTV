@@ -1,25 +1,23 @@
 package com.music.bitchord.ui.tv.components
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.music.bitchord.R
 import com.music.bitchord.ui.tv.theme.TvSFProDisplay
 
 /**
@@ -70,37 +68,33 @@ fun TvLyricsIcon(
 }
 
 /**
- * Lyrics badge displayed on the bottom-left below the album cover.
- * Starts as deep black and adapts dynamically to the album cover tint.
+ * Clean BitChord Brand Badge displayed on the bottom-left below album cover.
+ * Pure transparent background (no gray box), displaying Logo + "BitChord".
  */
 @Composable
 fun TvLyricsBadge(
     modifier: Modifier = Modifier,
-    backgroundColor: Color = Color(0xFF141414),
+    backgroundColor: Color = Color.Transparent,
     onClick: (() -> Unit)? = null,
 ) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(backgroundColor)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center,
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            TvLyricsIcon(
-                modifier = Modifier.size(20.dp),
-                tint = Color.White,
-            )
-            Text(
-                text = "Lyrics",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = TvSFProDisplay,
-                color = Color.White,
-            )
-        }
+        Icon(
+            painter = painterResource(R.drawable.ic_logo),
+            contentDescription = "BitChord Logo",
+            tint = Color.White,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            text = "BitChord",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = TvSFProDisplay,
+            color = Color.White,
+            letterSpacing = (-0.2).sp,
+        )
     }
 }

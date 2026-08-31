@@ -214,9 +214,9 @@ fun TvLyricsOverlay(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Lyrics Logo on Bottom Left below the Album Cover
+                // (Logo) BitChord on Bottom Left below Album Cover (No Gray Background)
                 TvLyricsBadge(
-                    backgroundColor = Color(0xFF141414),
+                    backgroundColor = Color.Transparent,
                 )
             }
 

@@ -25,9 +25,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Airplay
 import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,7 +60,6 @@ import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.ui.tv.components.TvLyricsIcon
 import com.music.bitchord.ui.tv.focus.tvButtonFocus
-import com.music.bitchord.ui.tv.focus.tvCardFocus
 import com.music.bitchord.ui.tv.theme.TvDimensions
 import com.music.bitchord.ui.tv.theme.TvSFProDisplay
 
@@ -65,7 +67,7 @@ import com.music.bitchord.ui.tv.theme.TvSFProDisplay
  * 1:1 Apple Music TV Now Playing Screen matching the exact reference image.
  *
  * - Top: AirPlay / Device status pill (left), Album title (center), 4 Frosted Circular buttons: Shuffle, Repeat, Infinity/Autoplay, Lyrics (right).
- * - Center: 3D Cover Flow Carousel with active central playing card, scaled/dimmed previous & next tracks.
+ * - Center: 3D Cover Flow Carousel with real previous track, active central playing card, and real next track from queue.
  * - Center Bottom: Active track title, artist subtitle, and centered "..." more options button.
  * - Bottom: Full-width smooth white seekline with left elapsed time & right remaining duration.
  */
@@ -81,6 +83,8 @@ fun TvPlayerLayout(
     isLyricsActive: Boolean,
     hasPrevious: Boolean,
     hasNext: Boolean,
+    previousSong: Song? = null,
+    nextSong: Song? = null,
     playingFromSource: String? = null,
     onToggleLike: () -> Unit,
     onToggleShuffle: () -> Unit,
@@ -206,9 +210,9 @@ fun TvPlayerLayout(
                     .graphicsLayer {
                         scaleX = 0.85f
                         scaleY = 0.85f
-                        alpha = 0.60f
+                        alpha = if (previousSong != null) 0.60f else 0.25f
                     }
-                    .clickable { onPrevious() },
+                    .clickable(enabled = hasPrevious) { onPrevious() },
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Box(
@@ -220,21 +224,28 @@ fun TvPlayerLayout(
                         .background(Color.White.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (!song.thumbnailUrl.isNullOrBlank()) {
+                    if (previousSong?.thumbnailUrl != null) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(song.thumbnailUrl)
+                                .data(previousSong.thumbnailUrl)
                                 .crossfade(true)
                                 .build(),
-                            contentDescription = null,
+                            contentDescription = previousSong.title,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.SkipPrevious,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.35f),
+                            modifier = Modifier.size(48.dp),
                         )
                     }
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "Previous Track",
+                    text = previousSong?.title ?: "Start of Queue",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     fontFamily = TvSFProDisplay,
@@ -243,6 +254,17 @@ fun TvPlayerLayout(
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
                 )
+                if (previousSong != null) {
+                    Text(
+                        text = previousSong.artist,
+                        fontSize = 12.sp,
+                        fontFamily = TvSFProDisplay,
+                        color = Color.White.copy(alpha = 0.5f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(20.dp))
@@ -338,9 +360,9 @@ fun TvPlayerLayout(
                     .graphicsLayer {
                         scaleX = 0.85f
                         scaleY = 0.85f
-                        alpha = 0.60f
+                        alpha = if (nextSong != null) 0.60f else 0.25f
                     }
-                    .clickable { onNext() },
+                    .clickable(enabled = hasNext) { onNext() },
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Box(
@@ -352,21 +374,28 @@ fun TvPlayerLayout(
                         .background(Color.White.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (!song.thumbnailUrl.isNullOrBlank()) {
+                    if (nextSong?.thumbnailUrl != null) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(song.thumbnailUrl)
+                                .data(nextSong.thumbnailUrl)
                                 .crossfade(true)
                                 .build(),
-                            contentDescription = null,
+                            contentDescription = nextSong.title,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.SkipNext,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.35f),
+                            modifier = Modifier.size(48.dp),
                         )
                     }
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "Next Track",
+                    text = nextSong?.title ?: "End of Queue",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     fontFamily = TvSFProDisplay,
@@ -375,6 +404,17 @@ fun TvPlayerLayout(
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
                 )
+                if (nextSong != null) {
+                    Text(
+                        text = nextSong.artist,
+                        fontSize = 12.sp,
+                        fontFamily = TvSFProDisplay,
+                        color = Color.White.copy(alpha = 0.5f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
 
