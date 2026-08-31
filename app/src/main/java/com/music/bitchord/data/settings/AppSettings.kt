@@ -499,6 +499,16 @@ object AppSettings {
         discordButton2Text.value = prefs.getString(KEY_DISCORD_BUTTON_2_TEXT, "").orEmpty()
         discordButton2Visible.value = prefs.getBoolean(KEY_DISCORD_BUTTON_2_VISIBLE, true)
         discordInfoDismissed.value = prefs.getBoolean(KEY_DISCORD_INFO_DISMISSED, false)
+        tvRefreshRate.value = prefs.getString(KEY_TV_REFRESH_RATE, "AUTO") ?: "AUTO"
+    }
+
+    val tvRefreshRate = MutableStateFlow("AUTO")
+
+    fun setTvRefreshRate(value: String) {
+        tvRefreshRate.value = value
+        if (this::prefs.isInitialized) {
+            prefs.edit().putString(KEY_TV_REFRESH_RATE, value).apply()
+        }
     }
 
     /**
@@ -1104,6 +1114,7 @@ object AppSettings {
     private const val KEY_DISCORD_BUTTON_2_TEXT = "discord_button_2_text"
     private const val KEY_DISCORD_BUTTON_2_VISIBLE = "discord_button_2_visible"
     private const val KEY_DISCORD_INFO_DISMISSED = "discord_info_dismissed"
+    private const val KEY_TV_REFRESH_RATE = "tv_refresh_rate"
     private const val KEY_LAST_VERSION_CODE = "last_version_code"
 }
 

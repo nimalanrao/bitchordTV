@@ -1,0 +1,99 @@
+package com.music.bitchord.ui.tv.display
+
+import android.app.Activity
+import android.content.Context
+import android.hardware.display.DisplayManager
+import android.os.Build
+import android.util.Log
+import android.view.Display
+import android.view.WindowManager
+import com.music.bitchord.data.settings.AppSettings
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+object TvRefreshRateController {
+
+    private const val TAG = "TvRefreshRateController"
+
+    private val _capabilities = MutableStateFlow(TvDisplayCapabilities())
+    val capabilities: StateFlow<TvDisplayCapabilities> = _capabilities.asStateFlow()
+
+    private val _preference = MutableStateFlow(TvRefreshRatePreference.SYSTEM_AUTO)
+    val preference: StateFlow<TvRefreshRatePreference> = _preference.asStateFlow()
+
+    private var displayManager: DisplayManager? = null
+    private var displayListener: DisplayManager.DisplayListener? = null
+
+    fun attach(activity: Activity) {
+        val dm = activity.getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager
+        displayManager = dm
+
+        val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            activity.display
+        } else {
+            @Suppress("DEPRECATION")
+            activity.windowManager.defaultDisplay
+        }
+
+        updateCapabilities(display)
+
+        // Read stored preference
+        val stored = AppSettings.tvRefreshRate.value
+        val pref = TvRefreshRatePreference.fromString(stored)
+        _preference.value = pref
+        applyToWindow(activity, pref)
+
+        val listener = object : DisplayManager.DisplayListener {
+            override fun onDisplayAdded(displayId: Int) {}
+            override fun onDisplayRemoved(displayId: Int) {}
+            override fun onDisplayChanged(displayId: Int) {
+                if (displayId == display?.displayId) {
+                    updateCapabilities(display)
+                }
+            }
+        }
+        displayListener = listener
+        dm?.registerDisplayListener(listener, null)
+    }
+
+    fun detach() {
+        displayListener?.let { displayManager?.unregisterDisplayListener(it) }
+        displayListener = null
+        displayManager = null
+    }
+
+    fun updateCapabilities(display: Display?) {
+        val caps = TvDisplayCapabilitiesReader.readCapabilities(display)
+        _capabilities.value = caps
+        Log.d(TAG, "Active TV Display: ${caps.currentPhysicalWidth}x${caps.currentPhysicalHeight} @ ${caps.actualRefreshRateHz} Hz (120Hz Supported: ${caps.is120HzSupported})")
+    }
+
+    fun setPreference(activity: Activity, preference: TvRefreshRatePreference) {
+        _preference.value = preference
+        AppSettings.setTvRefreshRate(preference.name)
+        applyToWindow(activity, preference)
+    }
+
+    private fun applyToWindow(activity: Activity, pref: TvRefreshRatePreference) {
+        try {
+            val window = activity.window ?: return
+            val lp = window.attributes ?: WindowManager.LayoutParams()
+            val caps = _capabilities.value
+
+            val targetModeId = when (pref) {
+                TvRefreshRatePreference.SYSTEM_AUTO -> 0 // 0 resets to platform default
+                TvRefreshRatePreference.SMOOTH_60 -> caps.compatible60ModeId ?: 0
+                TvRefreshRatePreference.ULTRA_120 -> caps.compatible120ModeId ?: 0
+            }
+
+            if (lp.preferredDisplayModeId != targetModeId) {
+                lp.preferredDisplayModeId = targetModeId
+                window.attributes = lp
+                Log.d(TAG, "Applied preferredDisplayModeId=$targetModeId for preference=$pref")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to apply display mode to window", e)
+        }
+    }
+}

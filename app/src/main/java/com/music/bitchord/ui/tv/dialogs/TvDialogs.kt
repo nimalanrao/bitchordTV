@@ -497,3 +497,129 @@ fun TvAboutDialog(
         }
     }
 }
+
+@Composable
+fun TvRefreshRateDialog(
+    onDismiss: () -> Unit,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val activity = context as? android.app.Activity
+
+    val capabilities by com.music.bitchord.ui.tv.display.TvRefreshRateController.capabilities.collectAsState()
+    val currentPref by com.music.bitchord.ui.tv.display.TvRefreshRateController.preference.collectAsState()
+
+    TvDialog(
+        title = "Interface Refresh Rate",
+        onDismissRequest = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text(
+                text = "Active Display: ${capabilities.currentPhysicalWidth} × ${capabilities.currentPhysicalHeight} @ ${String.format("%.1f", capabilities.actualRefreshRateHz)} Hz",
+                color = TvColors.AccentRed,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = TvSFProDisplay,
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Auto Option
+                TvRefreshRateOptionRow(
+                    preference = com.music.bitchord.ui.tv.display.TvRefreshRatePreference.SYSTEM_AUTO,
+                    isSelected = currentPref == com.music.bitchord.ui.tv.display.TvRefreshRatePreference.SYSTEM_AUTO,
+                    isEnabled = true,
+                    onClick = {
+                        activity?.let { com.music.bitchord.ui.tv.display.TvRefreshRateController.setPreference(it, com.music.bitchord.ui.tv.display.TvRefreshRatePreference.SYSTEM_AUTO) }
+                        onDismiss()
+                    },
+                )
+
+                // Smooth 60 Hz Option
+                TvRefreshRateOptionRow(
+                    preference = com.music.bitchord.ui.tv.display.TvRefreshRatePreference.SMOOTH_60,
+                    isSelected = currentPref == com.music.bitchord.ui.tv.display.TvRefreshRatePreference.SMOOTH_60,
+                    isEnabled = capabilities.is60HzSupported,
+                    onClick = {
+                        activity?.let { com.music.bitchord.ui.tv.display.TvRefreshRateController.setPreference(it, com.music.bitchord.ui.tv.display.TvRefreshRatePreference.SMOOTH_60) }
+                        onDismiss()
+                    },
+                )
+
+                // Ultra 120 Hz Option
+                TvRefreshRateOptionRow(
+                    preference = com.music.bitchord.ui.tv.display.TvRefreshRatePreference.ULTRA_120,
+                    isSelected = currentPref == com.music.bitchord.ui.tv.display.TvRefreshRatePreference.ULTRA_120,
+                    isEnabled = capabilities.is120HzSupported,
+                    disabledReason = if (!capabilities.is120HzSupported) "This TV does not report a compatible 120 Hz mode at native ${capabilities.currentPhysicalHeight}p resolution." else null,
+                    onClick = {
+                        activity?.let { com.music.bitchord.ui.tv.display.TvRefreshRateController.setPreference(it, com.music.bitchord.ui.tv.display.TvRefreshRatePreference.ULTRA_120) }
+                        onDismiss()
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TvButton(
+                    text = "Close",
+                    isPrimary = true,
+                    onClick = onDismiss,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TvRefreshRateOptionRow(
+    preference: com.music.bitchord.ui.tv.display.TvRefreshRatePreference,
+    isSelected: Boolean,
+    isEnabled: Boolean,
+    disabledReason: String? = null,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .tvButtonFocus(
+                shape = RoundedCornerShape(10.dp),
+                focusedBorderColor = TvColors.BorderFocused,
+                onClick = if (isEnabled) onClick else null,
+            )
+            .background(if (isSelected) TvColors.SurfaceSelected else TvColors.SurfaceVariant)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = preference.label,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = TvSFProDisplay,
+                    color = if (isEnabled) TvColors.TextPrimary else TvColors.TextMuted,
+                )
+                if (isSelected) {
+                    Text(
+                        text = "ACTIVE",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TvColors.AccentRed,
+                        fontFamily = TvSFProDisplay,
+                    )
+                }
+            }
+            Text(
+                text = disabledReason ?: preference.description,
+                fontSize = 12.sp,
+                fontFamily = TvSFProDisplay,
+                color = if (isEnabled) TvColors.TextSecondary else TvColors.TextMuted,
+                lineHeight = 16.sp,
+            )
+        }
+    }
+}

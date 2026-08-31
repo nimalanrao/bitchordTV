@@ -107,6 +107,7 @@ The mobile phone experience retains 100% of BitChord's signature polish:
 Explore the complete architecture and release documentation in [`docs/`](docs/):
 
 - 📄 [**TV Implementation Report**](docs/TV_IMPLEMENTATION_REPORT.md) – Architecture, security analysis, and design system decisions.
+- 📄 [**TV Performance & 120 Hz Report**](docs/TV_PERFORMANCE_REPORT.md) – Display capability subsystem, frame pacing, and render optimizations.
 - 📄 [**TV Compatibility Matrix**](docs/TV_COMPATIBILITY.md) – Device matrix, ABI details, and 16 KB page-size compliance.
 - 📄 [**TV Quality & Test Matrix**](docs/TV_TEST_MATRIX.md) – Remote traversal verification, display scaling, and playback checks.
 - 📄 [**TV Release Checklist**](docs/TV_RELEASE_CHECKLIST.md) – Store distribution and packaging guide.

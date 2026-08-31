@@ -10,6 +10,7 @@ import com.music.bitchord.playback.rememberMediaController
 import com.music.bitchord.playback.rememberPlayerState
 import com.music.bitchord.ui.MainViewModel
 import com.music.bitchord.ui.tv.TvApp
+import com.music.bitchord.ui.tv.display.TvRefreshRateController
 import com.music.bitchord.ui.tv.theme.BitChordTvTheme
 
 /**
@@ -22,6 +23,9 @@ class TvActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Attach TV Refresh Rate and Display Controller
+        TvRefreshRateController.attach(this)
 
         // Make window full edge-to-edge for 1080p/4K television screens
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -39,5 +43,10 @@ class TvActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        TvRefreshRateController.detach()
     }
 }

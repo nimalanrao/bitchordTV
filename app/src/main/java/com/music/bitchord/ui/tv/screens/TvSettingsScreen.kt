@@ -64,6 +64,7 @@ fun TvSettingsScreen(
     onOpenDiscordDialog: () -> Unit,
     onOpenScrobbleDialog: () -> Unit,
     onOpenSourcesDialog: () -> Unit,
+    onOpenRefreshRateDialog: () -> Unit,
     onOpenAboutDialog: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -78,6 +79,9 @@ fun TvSettingsScreen(
     val lastfmEnabled by AppSettings.lastfmEnabled.collectAsState()
     val listenBrainzEnabled by AppSettings.listenBrainzEnabled.collectAsState()
 
+    val refreshPref by com.music.bitchord.ui.tv.display.TvRefreshRateController.preference.collectAsState()
+    val capabilities by com.music.bitchord.ui.tv.display.TvRefreshRateController.capabilities.collectAsState()
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -88,9 +92,9 @@ fun TvSettingsScreen(
         ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Account & Connectivity Section
+        // Account & Connected Services Section
         item {
-            TvSectionHeader(title = "Account & Services")
+            TvSectionHeader(title = "Account & Connected Services")
             Spacer(modifier = Modifier.height(6.dp))
 
             TvSettingsRow(
@@ -117,6 +121,20 @@ fun TvSettingsScreen(
                 },
                 icon = Icons.Default.GraphicEq,
                 onClick = onOpenScrobbleDialog,
+            )
+        }
+
+        // Display & Refresh Rate Section
+        item {
+            Spacer(modifier = Modifier.height(12.dp))
+            TvSectionHeader(title = "Display & Performance")
+            Spacer(modifier = Modifier.height(6.dp))
+
+            TvSettingsRow(
+                title = "Interface Refresh Rate",
+                subtitle = "${refreshPref.label} • Active: ${String.format("%.1f", capabilities.actualRefreshRateHz)} Hz (${capabilities.currentPhysicalHeight}p)",
+                icon = Icons.Default.Speed,
+                onClick = onOpenRefreshRateDialog,
             )
         }
 

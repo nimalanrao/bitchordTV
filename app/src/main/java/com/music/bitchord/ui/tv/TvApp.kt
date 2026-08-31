@@ -104,6 +104,7 @@ fun TvApp(
     var showDiscordDialog by remember { mutableStateOf(false) }
     var showScrobbleDialog by remember { mutableStateOf(false) }
     var showSourcesDialog by remember { mutableStateOf(false) }
+    var showRefreshRateDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
 
     Box(
@@ -219,6 +220,7 @@ fun TvApp(
                                     onOpenDiscordDialog = { showDiscordDialog = true },
                                     onOpenScrobbleDialog = { showScrobbleDialog = true },
                                     onOpenSourcesDialog = { showSourcesDialog = true },
+                                    onOpenRefreshRateDialog = { showRefreshRateDialog = true },
                                     onOpenAboutDialog = { showAboutDialog = true },
                                 )
                             }
@@ -252,6 +254,9 @@ fun TvApp(
         }
         if (showSourcesDialog) {
             TvSourcesDialog(onDismiss = { showSourcesDialog = false })
+        }
+        if (showRefreshRateDialog) {
+            com.music.bitchord.ui.tv.dialogs.TvRefreshRateDialog(onDismiss = { showRefreshRateDialog = false })
         }
         if (showAboutDialog) {
             TvAboutDialog(onDismiss = { showAboutDialog = false })
