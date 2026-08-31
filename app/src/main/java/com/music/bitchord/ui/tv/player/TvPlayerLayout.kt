@@ -119,7 +119,7 @@ fun TvPlayerLayout(
                 }
             }
 
-            // Stats for Nerds Overlay Card (Top Right)
+            // Stats for Nerds Overlay Card (Top Right - matching Image 4)
             AnimatedVisibility(
                 visible = showNerdStats,
                 enter = fadeIn(),
@@ -127,31 +127,37 @@ fun TvPlayerLayout(
             ) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.Black.copy(alpha = 0.65f))
-                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.Black.copy(alpha = 0.72f))
+                        .border(
+                            1.5.dp,
+                            Brush.horizontalGradient(
+                                listOf(Color(0xFFFA2D48), Color(0xFF00E5FF)),
+                            ),
+                            RoundedCornerShape(16.dp),
+                        )
+                        .padding(horizontal = 18.dp, vertical = 12.dp),
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             text = "STATS FOR NERDS",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.W900,
                             fontFamily = TvSFProDisplay,
-                            color = TvColors.AccentRed,
-                            letterSpacing = 0.8.sp,
+                            color = Color(0xFFFF2D55),
+                            letterSpacing = 1.sp,
                         )
                         Text(
                             text = "Codec: Opus / FLAC • 48 kHz / 24-bit",
-                            fontSize = 11.sp,
+                            fontSize = 13.sp,
                             fontFamily = FontFamily.Monospace,
                             color = Color.White,
                         )
                         Text(
                             text = "Bitrate: 320 kbps (Lossless Master)",
-                            fontSize = 11.sp,
+                            fontSize = 13.sp,
                             fontFamily = FontFamily.Monospace,
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = Color.White.copy(alpha = 0.75f),
                         )
                     }
                 }

@@ -22,8 +22,8 @@ import com.music.bitchord.ui.tv.theme.TvColors
 
 /**
  * Ultra-performance cinematic Apple Music TV background.
- * In Lyrics mode: Renders full-bleed animated mesh gradient with noise grain.
- * In Standard Player mode: Single-pass cached cinematic artwork scrim.
+ * Automatically samples colors from the active track artwork and renders
+ * full-bleed animated mesh gradient with noise grain.
  */
 @Composable
 fun TvPlayerBackground(
@@ -32,14 +32,9 @@ fun TvPlayerBackground(
     isLyricsMode: Boolean = false,
 ) {
     if (isLyricsMode) {
-        // Apple Music 1:1 animated mesh gradient with noise grain
+        // Apple Music 1:1 animated mesh gradient adapting to the song's album cover colors
         TvMeshBackground(
-            colors = listOf(
-                Color(0xFF4A1060), // Royal Plum
-                Color(0xFF16256A), // Deep Sapphire
-                Color(0xFF6B1A3F), // Crimson Berry
-                Color(0xFF101026), // Dark Indigo
-            ),
+            artworkUrl = artworkUrl,
             modifier = modifier,
         )
     } else {

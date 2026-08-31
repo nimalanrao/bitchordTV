@@ -1,10 +1,7 @@
 package com.music.bitchord.ui.tv
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -23,10 +20,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
@@ -34,6 +29,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -55,6 +52,7 @@ import androidx.media3.session.MediaController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.music.bitchord.R
 import com.music.bitchord.data.model.BrowseType
 import com.music.bitchord.playback.PlayerState
 import com.music.bitchord.ui.MainViewModel
@@ -62,7 +60,6 @@ import com.music.bitchord.ui.tv.dialogs.TvAboutDialog
 import com.music.bitchord.ui.tv.dialogs.TvAccountDialog
 import com.music.bitchord.ui.tv.dialogs.TvDiscordDialog
 import com.music.bitchord.ui.tv.dialogs.TvNicknameDialog
-import com.music.bitchord.ui.tv.dialogs.TvRefreshRateDialog
 import com.music.bitchord.ui.tv.dialogs.TvScrobbleDialog
 import com.music.bitchord.ui.tv.dialogs.TvSourcesDialog
 import com.music.bitchord.ui.tv.dialogs.TvThemeDialog
@@ -75,7 +72,6 @@ import com.music.bitchord.ui.tv.screens.TvSearchScreen
 import com.music.bitchord.ui.tv.screens.TvSettingsScreen
 import com.music.bitchord.ui.tv.theme.AppleSpringPreset
 import com.music.bitchord.ui.tv.theme.BitChordTvTheme
-import com.music.bitchord.ui.tv.theme.TvColors
 import com.music.bitchord.ui.tv.theme.TvDimensions
 import com.music.bitchord.ui.tv.theme.TvSFProDisplay
 import com.music.bitchord.ui.tv.theme.TvThemeColors
@@ -83,7 +79,6 @@ import com.music.bitchord.ui.tv.theme.appleSpring
 
 enum class TvDestination(val label: String, val icon: ImageVector) {
     FOR_YOU("For You", Icons.Default.Home),
-    BROWSE("Browse", Icons.Default.GraphicEq),
     LIBRARY("Library", Icons.Default.LibraryMusic),
     SEARCH("Search", Icons.Default.Search),
     SETTINGS("Settings", Icons.Default.Settings),
@@ -117,7 +112,6 @@ fun TvApp(
         var showDiscordDialog by remember { mutableStateOf(false) }
         var showScrobbleDialog by remember { mutableStateOf(false) }
         var showSourcesDialog by remember { mutableStateOf(false) }
-        var showRefreshRateDialog by remember { mutableStateOf(false) }
         var showNicknameDialog by remember { mutableStateOf(false) }
         var showThemeDialog by remember { mutableStateOf(false) }
         var showAboutDialog by remember { mutableStateOf(false) }
@@ -174,7 +168,7 @@ fun TvApp(
                             )
                         } else {
                             when (activeDestination) {
-                                TvDestination.FOR_YOU, TvDestination.BROWSE -> {
+                                TvDestination.FOR_YOU -> {
                                     TvHomeScreen(
                                         viewModel = viewModel,
                                         mediaController = mediaController,
@@ -245,7 +239,6 @@ fun TvApp(
                                         onOpenDiscordDialog = { showDiscordDialog = true },
                                         onOpenScrobbleDialog = { showScrobbleDialog = true },
                                         onOpenSourcesDialog = { showSourcesDialog = true },
-                                        onOpenRefreshRateDialog = { showRefreshRateDialog = true },
                                         onOpenNicknameDialog = { showNicknameDialog = true },
                                         onOpenThemeDialog = { showThemeDialog = true },
                                         onRunSetupAgain = { isRunningSetup = true },
@@ -283,9 +276,6 @@ fun TvApp(
             if (showSourcesDialog) {
                 TvSourcesDialog(onDismiss = { showSourcesDialog = false })
             }
-            if (showRefreshRateDialog) {
-                TvRefreshRateDialog(onDismiss = { showRefreshRateDialog = false })
-            }
             if (showNicknameDialog) {
                 TvNicknameDialog(onDismiss = { showNicknameDialog = false })
             }
@@ -301,8 +291,9 @@ fun TvApp(
 
 /**
  * Apple Music-style Top Horizontal Navigation Bar.
- * Features Apple logo / BitChord branding on the left, pill-shaped tabs in the center,
- * and quick-action icon buttons (Search, Settings) on the right.
+ * Left: BitChord brand logo with wavy bars icon.
+ * Center: Instant auto-selecting tabs (For You, Library, Now Playing).
+ * Right: Quick action buttons (Search, Settings).
  */
 @Composable
 private fun TvTopNavigationBar(
@@ -326,23 +317,23 @@ private fun TvTopNavigationBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        // Left: Apple Music style BitChord Branding
+        // Left: BitChord Brand Logo (Pink circle badge with 3 wavy bars + BitChord text)
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(34.dp)
                     .clip(CircleShape)
                     .background(palette.accentRed),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = null,
+                    painter = painterResource(R.drawable.ic_logo),
+                    contentDescription = "BitChord Logo",
                     tint = Color.White,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
 
@@ -356,18 +347,17 @@ private fun TvTopNavigationBar(
             )
         }
 
-        // Center: Navigation Pill Tabs (Apple TV style segmented pill container)
+        // Center: Navigation Pill Tabs (Instant switch on D-pad focus!)
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(24.dp))
-                .background(palette.surface)
+                .background(Color.White.copy(alpha = 0.08f))
                 .padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             val mainTabs = listOf(
                 TvDestination.FOR_YOU,
-                TvDestination.BROWSE,
                 TvDestination.LIBRARY,
             )
 
@@ -376,6 +366,7 @@ private fun TvTopNavigationBar(
                 TvNavPillItem(
                     label = destination.label,
                     isSelected = isSelected,
+                    onFocus = { onDestinationSelected(destination) },
                     onClick = { onDestinationSelected(destination) },
                 )
             }
@@ -384,6 +375,7 @@ private fun TvTopNavigationBar(
                 TvNavPillItem(
                     label = "Now Playing",
                     isSelected = false,
+                    onFocus = {},
                     onClick = onOpenNowPlaying,
                 )
             }
@@ -398,6 +390,7 @@ private fun TvTopNavigationBar(
                 icon = Icons.Default.Search,
                 contentDescription = "Search",
                 isSelected = activeDestination == TvDestination.SEARCH,
+                onFocus = { onDestinationSelected(TvDestination.SEARCH) },
                 onClick = { onDestinationSelected(TvDestination.SEARCH) },
             )
 
@@ -405,6 +398,7 @@ private fun TvTopNavigationBar(
                 icon = Icons.Default.Settings,
                 contentDescription = "Settings",
                 isSelected = activeDestination == TvDestination.SETTINGS,
+                onFocus = { onDestinationSelected(TvDestination.SETTINGS) },
                 onClick = { onDestinationSelected(TvDestination.SETTINGS) },
             )
         }
@@ -415,6 +409,7 @@ private fun TvTopNavigationBar(
 private fun TvNavPillItem(
     label: String,
     isSelected: Boolean,
+    onFocus: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -422,14 +417,29 @@ private fun TvNavPillItem(
     val isFocused by interactionSource.collectIsFocusedAsState()
     val palette = TvThemeColors.current
 
+    // Instant tab switch on focus without requiring extra click
+    LaunchedEffect(isFocused) {
+        if (isFocused) onFocus()
+    }
+
     val bgColor by animateColorAsState(
         targetValue = when {
-            isFocused -> palette.surfaceFocused
-            isSelected -> Color.White.copy(alpha = 0.2f)
+            isFocused -> Color.White
+            isSelected -> Color.White.copy(alpha = 0.22f)
             else -> Color.Transparent
         },
         animationSpec = appleSpring(AppleSpringPreset.Snappy),
         label = "navPillBg",
+    )
+
+    val textColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> Color.Black
+            isSelected -> Color.White
+            else -> palette.textSecondary
+        },
+        animationSpec = appleSpring(AppleSpringPreset.Snappy),
+        label = "navPillText",
     )
 
     val scale by animateFloatAsState(
@@ -448,7 +458,7 @@ private fun TvNavPillItem(
                 indication = null,
                 onClick = onClick,
             )
-            .padding(horizontal = 18.dp, vertical = 8.dp),
+            .padding(horizontal = 20.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -456,7 +466,7 @@ private fun TvNavPillItem(
             fontSize = 15.sp,
             fontWeight = if (isSelected || isFocused) FontWeight.Bold else FontWeight.Medium,
             fontFamily = TvSFProDisplay,
-            color = if (isSelected || isFocused) Color.White else palette.textSecondary,
+            color = textColor,
         )
     }
 }
@@ -466,6 +476,7 @@ private fun TvNavIconButton(
     icon: ImageVector,
     contentDescription: String,
     isSelected: Boolean,
+    onFocus: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -473,14 +484,28 @@ private fun TvNavIconButton(
     val isFocused by interactionSource.collectIsFocusedAsState()
     val palette = TvThemeColors.current
 
+    LaunchedEffect(isFocused) {
+        if (isFocused) onFocus()
+    }
+
     val bgColor by animateColorAsState(
         targetValue = when {
-            isFocused -> palette.surfaceFocused
+            isFocused -> Color.White
             isSelected -> palette.accentRed
-            else -> palette.surface
+            else -> Color.White.copy(alpha = 0.08f)
         },
         animationSpec = appleSpring(AppleSpringPreset.Snappy),
         label = "navIconBg",
+    )
+
+    val iconTint by animateColorAsState(
+        targetValue = when {
+            isFocused -> Color.Black
+            isSelected -> Color.White
+            else -> palette.textSecondary
+        },
+        animationSpec = appleSpring(AppleSpringPreset.Snappy),
+        label = "navIconTint",
     )
 
     val scale by animateFloatAsState(
@@ -505,7 +530,7 @@ private fun TvNavIconButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = if (isFocused || isSelected) Color.White else palette.textSecondary,
+            tint = iconTint,
             modifier = Modifier.size(20.dp),
         )
     }
