@@ -381,10 +381,10 @@ fun TvSettingsScreen(
                 }
                 item {
                     TvApplePillOption(
-                        title = "Account Login (Phone QR Code)",
-                        value = "Connect >",
+                        title = "Google & YouTube Account",
+                        value = "Sign In >",
                         onFocus = {
-                            activeDescription = "Scan QR code with your phone camera to seamlessly sign in without typing passwords on TV."
+                            activeDescription = "Sign in directly with your Google Account on TV or via phone to access your personalized library, playlists, and recommendations."
                         },
                         onClick = onOpenAccountDialog,
                     )

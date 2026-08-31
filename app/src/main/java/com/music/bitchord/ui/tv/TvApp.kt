@@ -129,29 +129,7 @@ fun TvApp(
 
         val palette = TvThemeColors.current
 
-        // Connect Mobile Web Remote Server Actions
-        androidx.compose.runtime.DisposableEffect(mediaController, playerState) {
-            com.music.bitchord.ui.tv.auth.TvAuthServer.statusProvider = {
-                com.music.bitchord.ui.tv.auth.TvRemoteStatus(
-                    isPlaying = playerState.isPlaying,
-                    title = playerState.song?.title ?: "No Song Playing",
-                    artist = playerState.song?.artist ?: "BitChord TV",
-                    artworkUrl = playerState.song?.thumbnailUrl,
-                    currentPositionMs = playerState.position.positionMs,
-                    durationMs = playerState.durationMs,
-                )
-            }
-            com.music.bitchord.ui.tv.auth.TvAuthServer.onPlayPauseAction = {
-                if (playerState.isPlaying) mediaController?.pause() else mediaController?.play()
-            }
-            com.music.bitchord.ui.tv.auth.TvAuthServer.onNextAction = { mediaController?.seekToNextMediaItem() }
-            com.music.bitchord.ui.tv.auth.TvAuthServer.onPreviousAction = { mediaController?.seekToPreviousMediaItem() }
-            com.music.bitchord.ui.tv.auth.TvAuthServer.onSeekAction = { ms -> mediaController?.seekTo(ms) }
-            com.music.bitchord.ui.tv.auth.TvAuthServer.onPlaySongAction = { song ->
-                mediaController?.playSongs(listOf(song), 0)
-            }
-            onDispose {}
-        }
+
 
         // Initialize Spatial Audio Virtualizer
         val spatialAudio by AppSettings.spatialAudioEnabled.collectAsState()

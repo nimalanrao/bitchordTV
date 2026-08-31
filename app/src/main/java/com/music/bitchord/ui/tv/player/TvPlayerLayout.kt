@@ -302,6 +302,14 @@ fun TvPlayerLayout(
                                 contentScale = ContentScale.Crop,
                             )
                         }
+
+                        if (canvasArtwork != null && liveCanvasEnabled) {
+                            com.music.bitchord.ui.player.CanvasArtworkPlayer(
+                                canvas = canvasArtwork!!,
+                                isPlaying = isPlaying,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(18.dp))

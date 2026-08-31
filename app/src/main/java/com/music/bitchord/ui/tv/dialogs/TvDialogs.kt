@@ -65,7 +65,7 @@ fun TvAccountDialog(
     val signedIn by viewModel.signedIn.collectAsState()
     val account by viewModel.account.collectAsState()
 
-    var isQrMode by remember { mutableStateOf(true) }
+    var loginMode by remember { mutableStateOf("menu") } // "menu", "google", "qr", "manual"
     var cookieText by remember { mutableStateOf("") }
     var pairingUrl by remember { mutableStateOf<String?>(null) }
     var isJustPaired by remember { mutableStateOf(false) }
@@ -73,8 +73,8 @@ fun TvAccountDialog(
     val scope = rememberCoroutineScope()
 
     // Start local pairing HTTP server when in QR mode
-    DisposableEffect(signedIn) {
-        if (!signedIn) {
+    DisposableEffect(signedIn, loginMode) {
+        if (!signedIn && loginMode == "qr") {
             scope.launch {
                 val serverInfo = TvAuthServer.start { receivedCookie ->
                     viewModel.onSignedIn(receivedCookie)
@@ -89,6 +89,59 @@ fun TvAccountDialog(
         onDispose {
             TvAuthServer.stop()
         }
+    }
+
+    if (loginMode == "google") {
+        // Direct Fullscreen Google Web Login Dialog
+        androidx.compose.ui.window.Dialog(onDismissRequest = { loginMode = "menu" }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xFF141418)),
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Google Sign In • YouTube Music",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = TvSFProDisplay,
+                            color = Color.White,
+                        )
+                        TvButton(
+                            text = "Cancel",
+                            isPrimary = false,
+                            onClick = { loginMode = "menu" },
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)),
+                    ) {
+                        com.music.bitchord.auth.YtMusicLoginScreen(
+                            onCookiesCaptured = { cookies ->
+                                viewModel.onSignedIn(cookies)
+                                isJustPaired = true
+                                loginMode = "menu"
+                                onDismiss()
+                            },
+                        )
+                    }
+                }
+            }
+        }
+        return
     }
 
     TvDialog(
@@ -151,7 +204,45 @@ fun TvAccountDialog(
                     )
                 }
             }
-        } else if (isQrMode) {
+        } else if (loginMode == "menu") {
+            // Main Choice Menu
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(
+                    text = "Choose how you would like to sign into your YouTube Music account:",
+                    fontSize = 15.sp,
+                    color = TvColors.TextSecondary,
+                    fontFamily = TvSFProDisplay,
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    TvButton(
+                        text = "Sign In with Google",
+                        isPrimary = true,
+                        onClick = { loginMode = "google" },
+                        modifier = Modifier.weight(1f),
+                    )
+                    TvButton(
+                        text = "Scan Phone QR",
+                        isPrimary = false,
+                        onClick = { loginMode = "qr" },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TvButton(
+                        text = "Cancel",
+                        onClick = onDismiss,
+                    )
+                }
+            }
+        } else if (loginMode == "qr") {
             // QR Code Phone-to-TV Sign In Mode
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(
@@ -202,26 +293,6 @@ fun TvAccountDialog(
                             color = TvColors.TextSecondary,
                             fontFamily = TvSFProDisplay,
                         )
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.padding(top = 4.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = null,
-                                tint = TvColors.AccentRed,
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Text(
-                                text = "Local & Direct • No Cloud Relay",
-                                fontSize = 11.sp,
-                                color = TvColors.AccentRed,
-                                fontFamily = TvSFProDisplay,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
                     }
                 }
 
@@ -232,9 +303,8 @@ fun TvAccountDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     TvButton(
-                        text = "Type on Remote",
-                        icon = Icons.Default.Keyboard,
-                        onClick = { isQrMode = false },
+                        text = "Back",
+                        onClick = { loginMode = "menu" },
                     )
                     TvButton(
                         text = "Cancel",

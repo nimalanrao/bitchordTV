@@ -1,12 +1,8 @@
 package com.music.bitchord.ui.tv.player
 
 import android.os.Build
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,12 +10,15 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -53,17 +52,16 @@ import com.music.bitchord.data.lyrics.LyricLine
 import com.music.bitchord.ui.tv.components.TvEmptyState
 import com.music.bitchord.ui.tv.components.TvErrorState
 import com.music.bitchord.ui.tv.focus.onTvKeyEvent
-import com.music.bitchord.ui.tv.theme.AppleSpringPreset
 import com.music.bitchord.ui.tv.theme.LocalTvFontFamily
-import com.music.bitchord.ui.tv.theme.TvSFProDisplay
-import com.music.bitchord.ui.tv.theme.appleSpring
+import kotlin.math.abs
 
 /**
- * 1:1 Apple Music TV Lyrics Viewport with Apple-physics smooth gliding, background vocals, and progressive syllable sweep.
+ * 1:1 Apple Music TV Lyrics Viewport with ultra-smooth spring-animated continuous scrolling.
  *
- * - 2 Unfocused Top Lines (~40% blur/dim)
- * - 1 Focused Singing Line in Middle (Crystal sharp, bold, glowing, progressive flow sweep)
- * - 3 Unfocused Bottom Lines (~20% blur/dim)
+ * - Active singing line is vertically centered and highlighted in bold white with progressive syllable sweep.
+ * - Smoothly glides to the next lyrics line using Apple spring physics (never instant/jarring).
+ * - Upper lines smoothly blur & dim (~40% blur/dim).
+ * - Lower lines smoothly blur & dim (~20% blur/dim).
  * - Background vocals rendered in smaller italicized text directly beneath the lead vocal line.
  */
 @Composable
@@ -112,23 +110,35 @@ fun TvLyricsList(
         }
     }
 
-    // Apple-physics smooth vertical glide animation between rows
-    val animatedIndexFloat by animateFloatAsState(
+    // Animated float index for butter-smooth continuous interpolation between lines
+    val animatedActiveIndex by animateFloatAsState(
         targetValue = activeIndex.toFloat(),
         animationSpec = spring(
-            dampingRatio = 0.86f,
-            stiffness = 110f, // Apple gentle physics (slow & smooth, not sluggish or jarring)
+            dampingRatio = 0.85f,
+            stiffness = 100f, // Apple gentle glide physics (slow, cinematic, fluid)
         ),
-        label = "lyricsAppleGlide",
+        label = "lyricsAppleFloatGlide",
     )
 
-    val currentFont = LocalTvFontFamily.current
+    val listState = rememberLazyListState()
 
-    // 6-Line Structured Viewport
-    Column(
+    // Smoothly scroll the list to center the active line
+    LaunchedEffect(activeIndex) {
+        if (lyrics.isNotEmpty() && activeIndex in lyrics.indices) {
+            val targetScrollIndex = (activeIndex - 1).coerceAtLeast(0)
+            listState.animateScrollToItem(
+                index = targetScrollIndex,
+                scrollOffset = -40,
+            )
+        }
+    }
+
+    LazyColumn(
+        state = listState,
+        contentPadding = PaddingValues(top = 80.dp, bottom = 160.dp, start = 16.dp, end = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 20.dp)
             .focusable()
             .onTvKeyEvent(
                 onUp = {
@@ -142,71 +152,166 @@ fun TvLyricsList(
                     true
                 },
             ),
-        verticalArrangement = Arrangement.SpaceEvenly,
-        horizontalAlignment = Alignment.Start,
     ) {
-        // Line -2: Top Unfocused 1 (40% blur/dim)
-        val lineMinus2 = lyrics.getOrNull(activeIndex - 2)
-        TvBlurLyricLineSlot(
-            line = lineMinus2,
-            alpha = 0.35f,
-            blurRadius = 3.dp,
-            fontSize = 22,
-            fontWeight = FontWeight.Medium,
-            onClick = { lineMinus2?.let { onSeekToTimestamp(it.timeMs) } },
-        )
+        itemsIndexed(lyrics, key = { index, line -> "${line.timeMs}_$index" }) { index, line ->
+            val distance = index - animatedActiveIndex
+            val absDist = abs(distance)
+            val isCurrentActive = index == activeIndex
 
-        // Line -1: Top Unfocused 2 (40% blur/dim)
-        val lineMinus1 = lyrics.getOrNull(activeIndex - 1)
-        TvBlurLyricLineSlot(
-            line = lineMinus1,
-            alpha = 0.45f,
-            blurRadius = 2.dp,
-            fontSize = 24,
-            fontWeight = FontWeight.Medium,
-            onClick = { lineMinus1?.let { onSeekToTimestamp(it.timeMs) } },
-        )
+            TvSmoothLyricLineItem(
+                line = line,
+                index = index,
+                distance = distance,
+                absDist = absDist,
+                isCurrentActive = isCurrentActive,
+                clock = clock,
+                onClick = { onSeekToTimestamp(line.timeMs) },
+            )
+        }
+    }
+}
 
-        // Line 0: ACTIVE FOCUSED LINE (Crystal sharp, 0% blur, bold white, glowing progressive sweep & background vocals)
-        val activeLine = lyrics.getOrNull(activeIndex)
-        TvActiveSweptLyricLine(
-            line = activeLine,
-            clock = clock,
-            onClick = { activeLine?.let { onSeekToTimestamp(it.timeMs) } },
-        )
+@Composable
+private fun TvSmoothLyricLineItem(
+    line: LyricLine,
+    index: Int,
+    distance: Float,
+    absDist: Float,
+    isCurrentActive: Boolean,
+    clock: MutableLongState,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val currentFont = LocalTvFontFamily.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
 
-        // Line +1: Bottom Unfocused 1 (20% blur/dim)
-        val linePlus1 = lyrics.getOrNull(activeIndex + 1)
-        TvBlurLyricLineSlot(
-            line = linePlus1,
-            alpha = 0.50f,
-            blurRadius = 1.5.dp,
-            fontSize = 24,
-            fontWeight = FontWeight.Medium,
-            onClick = { linePlus1?.let { onSeekToTimestamp(it.timeMs) } },
-        )
+    // Dynamic Apple-physics styling based on distance to active line
+    val targetScale = when {
+        absDist < 0.5f -> 1.04f
+        absDist < 1.5f -> 0.98f
+        else -> 0.94f
+    }
+    val animatedScale by animateFloatAsState(targetScale, spring(0.85f, 120f), label = "lyricScale")
 
-        // Line +2: Bottom Unfocused 2 (20% blur/dim)
-        val linePlus2 = lyrics.getOrNull(activeIndex + 2)
-        TvBlurLyricLineSlot(
-            line = linePlus2,
-            alpha = 0.35f,
-            blurRadius = 2.dp,
-            fontSize = 22,
-            fontWeight = FontWeight.Medium,
-            onClick = { linePlus2?.let { onSeekToTimestamp(it.timeMs) } },
-        )
+    val targetAlpha = when {
+        absDist < 0.5f -> 1.0f
+        distance < 0 -> 0.35f // 40% blur/dim for past lines
+        else -> 0.45f // 20% blur/dim for upcoming lines
+    }
+    val animatedAlpha by animateFloatAsState(
+        if (isFocused) 1.0f else targetAlpha,
+        spring(0.85f, 120f),
+        label = "lyricAlpha",
+    )
 
-        // Line +3: Bottom Unfocused 3 (20% blur/dim)
-        val linePlus3 = lyrics.getOrNull(activeIndex + 3)
-        TvBlurLyricLineSlot(
-            line = linePlus3,
-            alpha = 0.22f,
-            blurRadius = 3.dp,
-            fontSize = 19,
-            fontWeight = FontWeight.Medium,
-            onClick = { linePlus3?.let { onSeekToTimestamp(it.timeMs) } },
-        )
+    val targetBlurDp: Dp = when {
+        absDist < 0.5f -> 0.dp
+        distance < 0 -> 2.5.dp // Upper unfocused blur
+        else -> 1.5.dp // Lower unfocused blur
+    }
+    val blurModifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && targetBlurDp > 0.dp && !isFocused) {
+        Modifier.blur(targetBlurDp)
+    } else Modifier
+
+    val style = TextStyle(
+        fontFamily = currentFont,
+        fontSize = if (absDist < 0.5f) 32.sp else 24.sp,
+        fontWeight = if (absDist < 0.5f) FontWeight.W800 else FontWeight.SemiBold,
+        lineHeight = if (absDist < 0.5f) 42.sp else 32.sp,
+    )
+
+    var layout by remember(line) { mutableStateOf<TextLayoutResult?>(null) }
+
+    val sweepModifier = if (isCurrentActive) {
+        Modifier.drawWithContent {
+            val pos = clock.longValue
+            when {
+                pos >= line.endMs -> drawContent()
+                pos <= line.timeMs -> Unit
+                else -> {
+                    val measured = layout
+                    if (measured != null) {
+                        val revealedChars = if (line.words.isNotEmpty()) {
+                            line.revealedChars(pos)
+                        } else {
+                            val duration = (line.endMs - line.timeMs).coerceAtLeast(1000L)
+                            val fraction = (pos - line.timeMs).toFloat() / duration.toFloat()
+                            fraction.coerceIn(0f, 1f) * line.text.length
+                        }
+                        tvProgressiveSweep(measured, revealedChars)
+                    }
+                }
+            }
+        }
+    } else Modifier
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+                alpha = animatedAlpha
+            }
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(vertical = 6.dp)
+            .then(blurModifier),
+    ) {
+        if (line.isGap) {
+            Text(
+                text = "♪  ♪  ♪",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                fontFamily = currentFont,
+            )
+        } else {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                // Dim background text
+                Text(
+                    text = line.text,
+                    style = style,
+                    color = Color.White.copy(alpha = if (isCurrentActive) 0.35f else 1.0f),
+                    onTextLayout = { layout = it },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                // Progressive glowing swept text on active line
+                if (isCurrentActive) {
+                    Text(
+                        text = line.text,
+                        style = style,
+                        color = Color.White,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(sweepModifier),
+                    )
+                }
+            }
+
+            // Secondary background vocalist text (small & italic beneath main line)
+            if (line.background != null && line.background.text.isNotBlank()) {
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    text = line.background.text,
+                    fontSize = if (isCurrentActive) 18.sp else 15.sp,
+                    fontStyle = FontStyle.Italic,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = currentFont,
+                    color = Color.White.copy(alpha = if (isCurrentActive) 0.70f else 0.50f),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
     }
 }
 
@@ -228,189 +333,6 @@ private fun rememberTvLyricClock(positionMs: Long, isPlaying: Boolean): MutableL
         }
     }
     return clock
-}
-
-/**
- * Unfocused blurred lyric line slot with secondary background vocal support.
- */
-@Composable
-private fun TvBlurLyricLineSlot(
-    line: LyricLine?,
-    alpha: Float,
-    blurRadius: Dp,
-    fontSize: Int,
-    fontWeight: FontWeight,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val currentFont = LocalTvFontFamily.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
-
-    val text = when {
-        line == null -> ""
-        line.isGap -> "♪  ♪  ♪"
-        else -> line.text
-    }
-
-    val blurModifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && blurRadius > 0.dp) {
-        Modifier.blur(blurRadius)
-    } else Modifier
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-            )
-            .padding(vertical = 4.dp)
-            .then(blurModifier),
-    ) {
-        if (text.isNotEmpty()) {
-            Text(
-                text = text,
-                fontSize = fontSize.sp,
-                lineHeight = (fontSize * 1.32f).sp,
-                fontWeight = fontWeight,
-                fontFamily = currentFont,
-                color = Color.White.copy(alpha = if (isFocused) 0.95f else alpha),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            // Secondary background vocal (if present)
-            if (line?.background != null && line.background.text.isNotBlank()) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = line.background.text,
-                    fontSize = (fontSize - 5).sp,
-                    fontStyle = FontStyle.Italic,
-                    fontFamily = currentFont,
-                    color = Color.White.copy(alpha = if (isFocused) 0.85f else alpha * 0.85f),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-    }
-}
-
-/**
- * Active singing line with crystal sharp focus, smooth progressive syllable sweep, and background vocal rendering.
- */
-@Composable
-private fun TvActiveSweptLyricLine(
-    line: LyricLine?,
-    clock: MutableLongState,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    if (line == null) return
-
-    val currentFont = LocalTvFontFamily.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
-
-    val scale by animateFloatAsState(
-        targetValue = 1.03f,
-        animationSpec = appleSpring(AppleSpringPreset.Gentle),
-        label = "activeLyricScale",
-    )
-
-    val style = TextStyle(
-        fontFamily = currentFont,
-        fontSize = 34.sp,
-        fontWeight = FontWeight.W800,
-        lineHeight = 44.sp,
-    )
-
-    var layout by remember(line) { mutableStateOf<TextLayoutResult?>(null) }
-
-    val sweepModifier = Modifier.drawWithContent {
-        val pos = clock.longValue
-        when {
-            pos >= line.endMs -> drawContent()
-            pos <= line.timeMs -> Unit
-            else -> {
-                val measured = layout
-                if (measured != null) {
-                    val revealedChars = if (line.words.isNotEmpty()) {
-                        line.revealedChars(pos)
-                    } else {
-                        val duration = (line.endMs - line.timeMs).coerceAtLeast(1000L)
-                        val fraction = (pos - line.timeMs).toFloat() / duration.toFloat()
-                        fraction.coerceIn(0f, 1f) * line.text.length
-                    }
-                    tvProgressiveSweep(measured, revealedChars)
-                }
-            }
-        }
-    }
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-            )
-            .padding(vertical = 6.dp),
-    ) {
-        if (line.isGap) {
-            Text(
-                text = "♪  ♪  ♪",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                fontFamily = currentFont,
-            )
-        } else {
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                // Dim base text
-                Text(
-                    text = line.text,
-                    style = style,
-                    color = Color.White.copy(alpha = 0.38f),
-                    onTextLayout = { layout = it },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                // Bright progressive white text revealed smoothly across syllables
-                Text(
-                    text = line.text,
-                    style = style,
-                    color = Color.White,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .then(sweepModifier),
-                )
-            }
-
-            // Secondary background vocalist text (small & italic beneath main line)
-            if (line.background != null && line.background.text.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = line.background.text,
-                    fontSize = 20.sp,
-                    fontStyle = FontStyle.Italic,
-                    fontWeight = FontWeight.Medium,
-                    fontFamily = currentFont,
-                    color = Color.White.copy(alpha = 0.65f),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-    }
 }
 
 /**
