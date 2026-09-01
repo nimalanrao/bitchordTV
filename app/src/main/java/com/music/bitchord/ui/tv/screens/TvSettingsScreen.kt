@@ -2,10 +2,14 @@ package com.music.bitchord.ui.tv.screens
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import com.music.bitchord.ui.tv.theme.appleSpring
+import com.music.bitchord.ui.tv.theme.AppleSpringPreset
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -471,24 +475,35 @@ private fun TvApplePillOption(
         if (isFocused) onFocus()
     }
 
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.03f else 1.0f,
+        animationSpec = appleSpring(AppleSpringPreset.Snappy),
+        label = "pillScale",
+    )
+
     val animatedBg by animateColorAsState(
         targetValue = if (isFocused) Color.White else Color.White.copy(alpha = 0.12f),
+        animationSpec = appleSpring(AppleSpringPreset.Snappy),
         label = "pillBg",
     )
 
     val titleColor = if (isFocused) Color.Black else Color.White
-    val valueColor = if (isFocused) Color(0xFF666666) else Color.White.copy(alpha = 0.55f)
+    val valueColor = if (isFocused) Color(0xFF222222) else Color.White.copy(alpha = 0.60f)
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .tvButtonFocus(
-                shape = RoundedCornerShape(24.dp),
-                focusedScale = 1.02f,
-                focusedBorderColor = Color.White,
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(RoundedCornerShape(24.dp))
+            .background(animatedBg)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
                 onClick = onClick,
             )
-            .background(animatedBg)
             .padding(horizontal = 22.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -496,7 +511,7 @@ private fun TvApplePillOption(
         Text(
             text = title,
             fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = if (isFocused) FontWeight.Bold else FontWeight.SemiBold,
             fontFamily = LocalTvFontFamily.current,
             color = titleColor,
             modifier = Modifier.weight(1f),
@@ -508,7 +523,7 @@ private fun TvApplePillOption(
             text = value,
             fontSize = 15.sp,
             fontFamily = LocalTvFontFamily.current,
-            fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal,
+            fontWeight = if (isFocused) FontWeight.W800 else FontWeight.Normal,
             color = valueColor,
         )
     }

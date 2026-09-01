@@ -289,6 +289,17 @@ val TvSFProDisplay = FontFamily(
     Font(R.font.sf_pro_display_heavy, FontWeight.W800),
 )
 
+val TvGoogleSans = FontFamily(
+    Font(R.font.google_sans_regular, FontWeight.W400),
+    Font(R.font.google_sans_medium, FontWeight.W500),
+    Font(R.font.google_sans_bold, FontWeight.W700),
+)
+
+val TvMinecraft = FontFamily(
+    Font(R.font.minecraft, FontWeight.W400),
+    Font(R.font.minecraft_bold, FontWeight.W700),
+)
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 10-foot TV typography scale
 // ─────────────────────────────────────────────────────────────────────────────
@@ -437,9 +448,9 @@ object TvDimensions {
 
 enum class TvFontOption(val id: String, val title: String, val description: String, val fontFamily: FontFamily) {
     SF_PRO("sf_pro", "Apple SF Pro Display", "Clean, refined iOS / macOS luxury typography", TvSFProDisplay),
-    GOOGLE_SANS("google_sans", "Google Sans", "Modern geometric sans-serif typeface", FontFamily.SansSerif),
+    GOOGLE_SANS("google_sans", "Google Sans", "Modern geometric sans-serif typeface", TvGoogleSans),
     ARIAL("arial", "Arial Classic", "Clean standard universal typography", FontFamily.Default),
-    MINECRAFT("minecraft", "Minecraft Pixel", "Retro 8-bit arcade pixelated monospace font", FontFamily.Monospace);
+    MINECRAFT("minecraft", "Minecraft Pixel", "Retro 8-bit arcade pixelated monospace font", TvMinecraft);
 
     companion object {
         fun fromId(id: String): TvFontOption = entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: SF_PRO
@@ -462,6 +473,7 @@ fun BitChordTvTheme(
     val palette = when (tvThemeId.lowercase()) {
         "pure_black", "oled", "pure_black_oled" -> TvOledPalette
         "midnight" -> TvMidnightPalette
+        "light_white", "light", "white", "pure_white" -> TvLightPalette
         else -> TvDarkPalette
     }
 

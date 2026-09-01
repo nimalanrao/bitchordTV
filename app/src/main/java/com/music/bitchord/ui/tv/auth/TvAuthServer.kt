@@ -460,31 +460,46 @@ updateStatus();
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BitChord TV • Connect</title>
+<title>BitChord TV • 1-Tap Sign In</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #08080B; color: #FFF; font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; }
-.card { width: 100%; max-width: 440px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 24px; padding: 24px; margin-bottom: 20px; backdrop-filter: blur(20px); }
+body { background: #08080B; color: #FFF; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; }
+.card { width: 100%; max-width: 460px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 24px; padding: 24px; margin-bottom: 20px; backdrop-filter: blur(24px); }
+.btn-google { width: 100%; height: 52px; background: #FFFFFF; color: #000; border: none; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; box-shadow: 0 4px 16px rgba(255,255,255,0.15); }
 .btn-primary { width: 100%; height: 50px; background: #FA2D48; color: #FFF; border: none; border-radius: 14px; font-size: 16px; font-weight: bold; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; margin-top: 12px; }
-.btn-secondary { width: 100%; height: 48px; background: rgba(255,255,255,0.12); color: #FFF; border: none; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; margin-top: 10px; }
-textarea { width: 100%; height: 100px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; color: #FFF; padding: 12px; font-size: 13px; font-family: monospace; margin-top: 10px; outline: none; }
+.btn-secondary { width: 100%; height: 48px; background: rgba(255,255,255,0.14); color: #FFF; border: none; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; margin-top: 12px; }
+textarea { width: 100%; height: 90px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); border-radius: 14px; color: #FFF; padding: 12px; font-size: 13px; font-family: monospace; margin-top: 10px; outline: none; }
+.step-box { background: rgba(255,255,255,0.05); border-radius: 14px; padding: 14px; margin-top: 14px; font-size: 13px; line-height: 1.5; color: #DDD; }
 </style>
 </head>
 <body>
 <div class="card" style="text-align: center;">
-  <div style="width: 50px; height: 50px; border-radius: 50%; background: #FA2D48; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;">♪</div>
-  <h1 style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">BitChord TV Connect</h1>
-  <p style="font-size: 14px; color: #A0A0AB;">Control playback or link your YouTube Music account.</p>
-  <a href="/remote" class="btn-primary">📱 Open TV Remote Control</a>
+  <div style="width: 52px; height: 52px; border-radius: 50%; background: #FA2D48; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;">♪</div>
+  <h1 style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">Sign In to BitChord TV</h1>
+  <p style="font-size: 14px; color: #A0A0AB;">Fast & easy login from your mobile phone</p>
+  
+  <div class="step-box" style="text-align: left; margin-top: 18px;">
+    <strong>Option 1 (Fastest):</strong>
+    <ol style="margin-left: 18px; margin-top: 6px;">
+      <li>Tap the button below to open YouTube Music in your browser.</li>
+      <li>Sign in with your Google Account if not already logged in.</li>
+      <li>Return here and paste your cookie, or use the 1-click script to log in automatically!</li>
+    </ol>
+  </div>
+
+  <a href="https://music.youtube.com" target="_blank" class="btn-google">
+    <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>
+    Open YouTube Music on Phone
+  </a>
 </div>
 
 <div class="card">
-  <h2 style="font-size: 17px; font-weight: bold; margin-bottom: 8px;">Link YouTube Music Account</h2>
-  <p style="font-size: 13px; color: #AAA; line-height: 1.4;">Paste your YouTube Music session cookie or token below to sign in on TV instantly:</p>
+  <h2 style="font-size: 17px; font-weight: bold; margin-bottom: 8px;">Direct Session Submission</h2>
+  <p style="font-size: 13px; color: #AAA; line-height: 1.4;">Paste your YouTube Music session cookie / headers to immediately log in on TV:</p>
   ${if (error != null) "<div style='color:#FF375F;font-size:13px;margin-top:8px;'>$error</div>" else ""}
   <form action="/submit" method="POST">
-    <textarea name="cookie" placeholder="Paste SAPISID / Cookie string here..."></textarea>
-    <button type="submit" class="btn-secondary">Sign In on TV</button>
+    <textarea name="cookie" placeholder="Paste SAPISID / Session Cookie here..."></textarea>
+    <button type="submit" class="btn-primary">Connect Account to TV</button>
   </form>
 </div>
 </body>

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -345,7 +346,7 @@ fun TvAccountDialog(
                     TvButton(
                         text = "Use QR Code",
                         icon = Icons.Default.QrCode,
-                        onClick = { isQrMode = true },
+                        onClick = { loginMode = "qr" },
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TvButton(

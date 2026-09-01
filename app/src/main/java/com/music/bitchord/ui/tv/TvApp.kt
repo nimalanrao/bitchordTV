@@ -28,12 +28,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -82,13 +85,17 @@ import com.music.bitchord.ui.tv.screens.TvSearchScreen
 import com.music.bitchord.ui.tv.screens.TvSettingsScreen
 import com.music.bitchord.ui.tv.theme.AppleSpringPreset
 import com.music.bitchord.ui.tv.theme.BitChordTvTheme
+import com.music.bitchord.ui.tv.theme.LocalTvFontFamily
 import com.music.bitchord.ui.tv.theme.TvDimensions
 import com.music.bitchord.ui.tv.theme.TvSFProDisplay
 import com.music.bitchord.ui.tv.theme.TvThemeColors
 import com.music.bitchord.ui.tv.theme.appleSpring
 
 enum class TvDestination(val label: String, val icon: ImageVector) {
-    FOR_YOU("For You", Icons.Default.Home),
+    FOR_YOU("Listen Now", Icons.Default.Home),
+    BROWSE("Browse", Icons.Default.Explore),
+    VIDEOS("Videos", Icons.Default.VideoLibrary),
+    RADIO("Radio", Icons.Default.Radio),
     LIBRARY("Library", Icons.Default.LibraryMusic),
     SEARCH("Search", Icons.Default.Search),
     SETTINGS("Settings", Icons.Default.Settings),
@@ -225,6 +232,45 @@ fun TvApp(
                                                     onNavigateToNowPlaying = { isNowPlayingOpen = true },
                                                 )
                                             }
+                                            TvDestination.BROWSE -> {
+                                                TvDetailScreen(
+                                                    browseId = "FEmusic_explore",
+                                                    initialTitle = "Browse & Explore",
+                                                    initialSubtitle = "Explore charts, genres, and mood collections",
+                                                    initialThumbnailUrl = null,
+                                                    type = BrowseType.OTHER,
+                                                    viewModel = viewModel,
+                                                    mediaController = mediaController,
+                                                    onNavigateToNowPlaying = { isNowPlayingOpen = true },
+                                                    onBack = { activeDestination = TvDestination.FOR_YOU },
+                                                )
+                                            }
+                                            TvDestination.VIDEOS -> {
+                                                TvDetailScreen(
+                                                    browseId = "FEmusic_videos",
+                                                    initialTitle = "Music Videos",
+                                                    initialSubtitle = "Top trending videos & live concert performances",
+                                                    initialThumbnailUrl = null,
+                                                    type = BrowseType.OTHER,
+                                                    viewModel = viewModel,
+                                                    mediaController = mediaController,
+                                                    onNavigateToNowPlaying = { isNowPlayingOpen = true },
+                                                    onBack = { activeDestination = TvDestination.FOR_YOU },
+                                                )
+                                            }
+                                            TvDestination.RADIO -> {
+                                                TvDetailScreen(
+                                                    browseId = "FEmusic_radio",
+                                                    initialTitle = "Radio Stations & Mixes",
+                                                    initialSubtitle = "Continuous automated playback & custom stations",
+                                                    initialThumbnailUrl = null,
+                                                    type = BrowseType.OTHER,
+                                                    viewModel = viewModel,
+                                                    mediaController = mediaController,
+                                                    onNavigateToNowPlaying = { isNowPlayingOpen = true },
+                                                    onBack = { activeDestination = TvDestination.FOR_YOU },
+                                                )
+                                            }
                                             TvDestination.LIBRARY -> {
                                                 TvLibraryScreen(
                                                     viewModel = viewModel,
@@ -315,7 +361,7 @@ fun TvApp(
 }
 
 /**
- * Apple Music-style Top Horizontal Navigation Bar.
+ * 1:1 Apple Music-style Top Unified Horizontal Pill Navigation Bar with embedded search icon.
  */
 @Composable
 private fun TvTopNavigationBar(
@@ -363,27 +409,30 @@ private fun TvTopNavigationBar(
                 text = "BitChord TV",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.W800,
-                fontFamily = TvSFProDisplay,
+                fontFamily = LocalTvFontFamily.current,
                 color = Color.White,
                 letterSpacing = (-0.4).sp,
             )
         }
 
-        // Center: Navigation Pill Tabs
+        // Center: Unified Pill Navigation Bar (Listen Now, Browse, Videos, Radio, Library, Now Playing, Search Icon)
         Row(
             modifier = Modifier
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color.White.copy(alpha = 0.08f))
+                .clip(RoundedCornerShape(26.dp))
+                .background(Color.White.copy(alpha = 0.10f))
                 .padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val mainTabs = listOf(
+            val pillTabs = listOf(
                 TvDestination.FOR_YOU,
+                TvDestination.BROWSE,
+                TvDestination.VIDEOS,
+                TvDestination.RADIO,
                 TvDestination.LIBRARY,
             )
 
-            mainTabs.forEach { destination ->
+            pillTabs.forEach { destination ->
                 val isSelected = activeDestination == destination
                 TvNavPillItem(
                     label = destination.label,
@@ -392,27 +441,25 @@ private fun TvTopNavigationBar(
                 )
             }
 
-            if (hasNowPlaying) {
-                TvNavPillItem(
-                    label = "Now Playing",
-                    isSelected = false,
-                    onClick = onOpenNowPlaying,
-                )
-            }
+            // Now Playing Quick Tab
+            TvNavPillItem(
+                label = "Now Playing",
+                isSelected = false,
+                onClick = onOpenNowPlaying,
+            )
+
+            // Search Icon Item inside the unified pill
+            TvNavPillSearchItem(
+                isSelected = activeDestination == TvDestination.SEARCH,
+                onClick = { onDestinationSelected(TvDestination.SEARCH) },
+            )
         }
 
-        // Right: Icon action buttons (Search, Settings)
+        // Right: Settings button
         Row(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TvNavIconButton(
-                icon = Icons.Default.Search,
-                contentDescription = "Search",
-                isSelected = activeDestination == TvDestination.SEARCH,
-                onClick = { onDestinationSelected(TvDestination.SEARCH) },
-            )
-
             TvNavIconButton(
                 icon = Icons.Default.Settings,
                 contentDescription = "Settings",
@@ -479,8 +526,68 @@ private fun TvNavPillItem(
             text = label,
             fontSize = 15.sp,
             fontWeight = if (isSelected || isFocused) FontWeight.Bold else FontWeight.Medium,
-            fontFamily = TvSFProDisplay,
+            fontFamily = LocalTvFontFamily.current,
             color = textColor,
+        )
+    }
+}
+
+@Composable
+private fun TvNavPillSearchItem(
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    val bgColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> Color.White
+            isSelected -> Color.White.copy(alpha = 0.22f)
+            else -> Color.Transparent
+        },
+        animationSpec = appleSpring(AppleSpringPreset.Snappy),
+        label = "navPillSearchBg",
+    )
+
+    val tintColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> Color.Black
+            isSelected -> Color.White
+            else -> Color.White.copy(alpha = 0.65f)
+        },
+        animationSpec = appleSpring(AppleSpringPreset.Snappy),
+        label = "navPillSearchTint",
+    )
+
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.08f else 1.0f,
+        animationSpec = appleSpring(AppleSpringPreset.Snappy),
+        label = "navPillSearchScale",
+    )
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(RoundedCornerShape(20.dp))
+            .background(bgColor)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = "Search",
+            tint = tintColor,
+            modifier = Modifier.size(18.dp),
         )
     }
 }

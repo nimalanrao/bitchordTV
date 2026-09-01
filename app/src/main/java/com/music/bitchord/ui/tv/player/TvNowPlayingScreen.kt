@@ -1,13 +1,25 @@
 package com.music.bitchord.ui.tv.player
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Airplay
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,6 +30,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.session.MediaController
@@ -25,9 +41,12 @@ import com.music.bitchord.data.LikeState
 import com.music.bitchord.data.model.LikeStatus
 import com.music.bitchord.playback.PlayerState
 import com.music.bitchord.ui.MainViewModel
+import com.music.bitchord.ui.tv.components.TvButton
 import com.music.bitchord.ui.tv.focus.onTvKeyEvent
+import com.music.bitchord.ui.tv.focus.tvButtonFocus
+import com.music.bitchord.ui.tv.theme.LocalTvFontFamily
 import com.music.bitchord.ui.tv.theme.TvColors
-import com.music.bitchord.ui.tv.theme.TvSFProDisplay
+import com.music.bitchord.ui.tv.theme.TvThemeColors
 
 @Composable
 fun TvNowPlayingScreen(
@@ -42,6 +61,7 @@ fun TvNowPlayingScreen(
     val currentPositionMs = playerState.position.positionMs
     val durationMs = playerState.durationMs
     val repeatMode = playerState.repeatMode
+    val isShuffleActive by com.music.bitchord.playback.QueueShuffle.enabled.collectAsState()
 
     val likeOverrides by LikeState.overrides.collectAsState()
     val isLiked = song?.let { likeOverrides[it.videoId] == LikeStatus.LIKE } ?: false
@@ -50,6 +70,7 @@ fun TvNowPlayingScreen(
     val lyricsChecked by viewModel.lyricsChecked.collectAsState()
 
     var isLyricsActive by remember { mutableStateOf(false) }
+    val currentFont = LocalTvFontFamily.current
 
     LaunchedEffect(song?.videoId, durationMs) {
         if (song != null) {
@@ -66,7 +87,7 @@ fun TvNowPlayingScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(TvColors.Background)
+            .background(TvThemeColors.current.background)
             .onTvKeyEvent(
                 onPlayPause = {
                     if (isPlaying) mediaController?.pause() else mediaController?.play()
@@ -84,13 +105,129 @@ fun TvNowPlayingScreen(
             ),
     ) {
         if (song == null) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "No track currently playing",
-                    color = TvColors.TextSecondary,
-                    fontSize = 18.sp,
-                    fontFamily = TvSFProDisplay,
-                )
+            // High-luxury Empty Placeholder State for First Launch / Idle
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 48.dp, vertical = 28.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                // Top Bar with Back Button and AirPlay Device Pill
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .tvButtonFocus(
+                                    shape = CircleShape,
+                                    focusedScale = 1.15f,
+                                    focusedBorderColor = Color.White,
+                                    onClick = onBack,
+                                )
+                                .background(Color.White.copy(alpha = 0.16f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color.White.copy(alpha = 0.12f))
+                                .padding(horizontal = 14.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Airplay,
+                                contentDescription = "AirPlay Device",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "BitChord TV",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                fontFamily = currentFont,
+                                color = Color.White,
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Now Playing",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontFamily = currentFont,
+                        color = Color.White.copy(alpha = 0.70f),
+                    )
+                }
+
+                // Center Artwork Placeholder & Explanation
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(160.dp)
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(Color.White.copy(alpha = 0.10f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.45f),
+                            modifier = Modifier.size(72.dp),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Text(
+                        text = "No Music Is Playing",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.W800,
+                        fontFamily = currentFont,
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Select any track or album from Listen Now, Browse, or Search to start playback.",
+                        fontSize = 16.sp,
+                        fontFamily = currentFont,
+                        color = Color.White.copy(alpha = 0.65f),
+                        textAlign = TextAlign.Center,
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    TvButton(
+                        text = "Explore Music",
+                        icon = Icons.Default.Explore,
+                        isPrimary = true,
+                        onClick = onBack,
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
             }
             return@Box
         }
@@ -142,24 +279,23 @@ fun TvNowPlayingScreen(
                     currentPositionMs = currentPositionMs,
                     durationMs = durationMs,
                     isLiked = isLiked,
-                    isShuffleActive = mediaController?.shuffleModeEnabled ?: false,
+                    isShuffleActive = isShuffleActive,
                     repeatMode = repeatMode,
-                    isLyricsActive = false,
-                    hasPrevious = playerState.hasPrevious,
-                    hasNext = playerState.hasNext,
+                    isLyricsActive = isLyricsActive,
+                    hasPrevious = previousSong != null,
+                    hasNext = nextSong != null,
                     previousSong = previousSong,
                     nextSong = nextSong,
+                    onBack = onBack,
                     onToggleLike = { viewModel.toggleLike(song.videoId) },
-                    onToggleShuffle = {
-                        mediaController?.shuffleModeEnabled = !(mediaController?.shuffleModeEnabled ?: false)
-                    },
+                    onToggleShuffle = { mediaController?.let { com.music.bitchord.playback.QueueShuffle.toggle(it) } },
                     onPrevious = { mediaController?.seekToPreviousMediaItem() },
                     onPlayPause = {
                         if (isPlaying) mediaController?.pause() else mediaController?.play()
                     },
                     onNext = { mediaController?.seekToNextMediaItem() },
-                    onToggleQueue = { /* Queue overlay */ },
-                    onToggleLyrics = { isLyricsActive = true },
+                    onToggleQueue = { /* Opens Queue / Options */ },
+                    onToggleLyrics = { isLyricsActive = !isLyricsActive },
                     onSeek = { targetMs -> mediaController?.seekTo(targetMs) },
                 )
             }
