@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,7 +31,7 @@ import com.music.bitchord.ui.tv.theme.appleSpring
 
 /**
  * Standard TV card focus modifier with hardware-accelerated draw-layer scale and Apple smooth spring physics.
- * Does NOT trigger layout or measure invalidations, guaranteeing 120 fps butter-smooth navigation.
+ * Includes active compression response upon D-pad click (0.96x press feedback).
  */
 fun Modifier.tvCardFocus(
     shape: Shape = RoundedCornerShape(16.dp),
@@ -43,10 +44,17 @@ fun Modifier.tvCardFocus(
 ): Modifier = composed {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val targetScale = when {
+        isPressed -> 0.96f
+        isFocused -> focusedScale
+        else -> 1.0f
+    }
 
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) focusedScale else 1.0f,
-        animationSpec = appleSpring(AppleSpringPreset.Smooth),
+        targetValue = targetScale,
+        animationSpec = appleSpring(if (isPressed) AppleSpringPreset.Snappy else AppleSpringPreset.Smooth),
         label = "tvCardFocusScale",
     )
 
@@ -81,22 +89,30 @@ fun Modifier.tvCardFocus(
 }
 
 /**
- * Standard TV button focus modifier with hardware-accelerated graphicsLayer scale.
+ * Standard TV button focus modifier with hardware-accelerated graphicsLayer scale and click feedback.
  */
 fun Modifier.tvButtonFocus(
     shape: Shape = RoundedCornerShape(12.dp),
     focusedScale: Float = 1.03f,
     focusedBorderColor: Color = Color.White,
     unfocusedBorderColor: Color = Color.Transparent,
+    borderWidth: Dp = 2.dp,
     onClick: (() -> Unit)? = null,
 ): Modifier = composed {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val targetScale = when {
+        isPressed -> 0.95f
+        isFocused -> focusedScale
+        else -> 1.0f
+    }
 
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) focusedScale else 1.0f,
-        animationSpec = appleSpring(AppleSpringPreset.Smooth),
-        label = "tvButtonFocusScale",
+        targetValue = targetScale,
+        animationSpec = appleSpring(AppleSpringPreset.Snappy),
+        label = "tvBtnFocusScale",
     )
 
     this
@@ -107,7 +123,7 @@ fun Modifier.tvButtonFocus(
         .zIndex(if (isFocused) 5f else 1f)
         .border(
             border = BorderStroke(
-                width = if (isFocused) 2.dp else 1.dp,
+                width = borderWidth,
                 color = if (isFocused) focusedBorderColor else unfocusedBorderColor,
             ),
             shape = shape,

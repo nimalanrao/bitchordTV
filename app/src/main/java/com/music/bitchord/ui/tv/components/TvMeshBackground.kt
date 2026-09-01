@@ -158,7 +158,12 @@ fun TvMeshBackground(
 
     val tvThemeId by AppSettings.tvTheme.collectAsState()
     val isOledMode = tvThemeId.lowercase() in listOf("pure_black", "oled", "pure_black_oled")
-    val baseCanvasColor = if (isOledMode) Color(0xFF000000) else Color(0xFF08080B)
+    val isLightMode = tvThemeId.lowercase() in listOf("light_white", "light", "white", "pure_white")
+    val baseCanvasColor = when {
+        isOledMode -> Color(0xFF000000)
+        isLightMode -> Color(0xFFF2F2F7)
+        else -> Color(0xFF08080B)
+    }
 
     Box(
         modifier = modifier
@@ -168,7 +173,7 @@ fun TvMeshBackground(
                 val h = size.height
 
                 onDrawBehind {
-                    // 1. Deep dark background canvas base (True #000000 on OLED)
+                    // 1. Deep dark background canvas base (True #000000 on OLED, #F2F2F7 in Light Mode)
                     drawRect(color = baseCanvasColor)
 
                     if (!isOledMode) {
@@ -195,14 +200,16 @@ fun TvMeshBackground(
 
                         val orbColors = listOf(color0, color1, color2, color3)
                         val orbRadius = minOf(w, h) * 0.62f
+                        val orbAlpha1 = if (isLightMode) 0.22f else 0.65f
+                        val orbAlpha2 = if (isLightMode) 0.08f else 0.25f
 
                         orbPositions.forEachIndexed { index, center ->
                             val orbColor = orbColors.getOrElse(index) { orbColors.last() }
                             drawCircle(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        orbColor.copy(alpha = 0.65f),
-                                        orbColor.copy(alpha = 0.25f),
+                                        orbColor.copy(alpha = orbAlpha1),
+                                        orbColor.copy(alpha = orbAlpha2),
                                         Color.Transparent,
                                     ),
                                     center = center,

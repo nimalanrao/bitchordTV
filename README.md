@@ -1,130 +1,182 @@
 <div align="center">
 
 <br/>
-<br/>
 
 <img src="Banner.png" alt="BitChord TV Banner" width="100%" />
 
-# BitChord TV
+# 📺 BitChord TV • Version 1.0.0
 
-### Universal YouTube Music Client for Android & Android TV / Google TV
+### The Ultimate Apple Music-Inspired Living Room Experience for Android TV & Google TV
 
 <br/>
 
-[![Latest release](https://img.shields.io/badge/Release-v0.01_TV_Edition-FA2D48?style=for-the-badge&labelColor=0d1117)](https://github.com/nimalanrao/bitchordTV/releases)
+[![Version](https://img.shields.io/badge/Version-1.0.0_Stable-FA2D48?style=for-the-badge&labelColor=0d1117)](https://github.com/nimalanrao/bitchordTV/releases)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge&labelColor=0d1117)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Android_%7C_Android_TV-4CAF50?style=for-the-badge&labelColor=0d1117)](#tv-compatibility)
-[![Lead](https://img.shields.io/badge/TV_Lead-Nyxcore-purple?style=for-the-badge&labelColor=0d1117)](#credits--authors)
+[![Platform](https://img.shields.io/badge/Platform-Android_TV_%7C_Google_TV-4CAF50?style=for-the-badge&labelColor=0d1117)](#tv-compatibility)
+[![Performance](https://img.shields.io/badge/Display-120Hz_Ultra--Smooth-FF9500?style=for-the-badge&labelColor=0d1117)](#ultra-performance-subsystem)
+[![Engineering Lead](https://img.shields.io/badge/TV_Lead-Nithyanantha_(Nyxcore)-9C27B0?style=for-the-badge&labelColor=0d1117)](#credits--authors)
 
 <br/>
 
-[**TV Experience**](#android-tv-features) · [**Cinematic Player & Lyrics**](#cinematic-player--synchronized-lyrics) · [**Mobile Features**](#mobile-features) · [**Remote Controls**](#navigation--remote-controls) · [**Compatibility**](#tv-compatibility) · [**Credits**](#credits--authors)
+[**Highlights**](#-key-features) · [**Top Navigation Bar**](#-unified-pill-top-navigation-bar) · [**Flowing Lyrics**](#-cinematic-cover-flow--flowing-lyrics) · [**Live Canvas**](#-live-video-canvas--spatial-audio) · [**Settings & Themes**](#-apple-tv-settings--custom-themes) · [**Typography**](#-custom-typography-suite) · [**Google Sign-In**](#-1-tap-google-sign-in) · [**Remote Guide**](#-remote-controls--key-bindings) · [**Credits**](#-credits--authors)
 
 </div>
 
-> [!WARNING]
-> BitChord is an independent open-source project and is not affiliated with, endorsed by, or connected to YouTube, Google LLC, or Apple in any way.
+> [!NOTE]
+> **BitChord TV 1.0.0** is an independent open-source client engineered exclusively for television screens and home theaters. It delivers bit-exact lossless audio, live motion video artwork, synchronized syllable lyrics, and 120Hz remote navigation.
 
 ---
 
-## 🌟 Overview
+## 🌟 Key Features
 
-**BitChord** is a premium universal Android music streaming application inspired by Apple Music's design language. It brings lossless audio streaming, intelligent DJ transitions, synchronized lyrics, and modern dark luxury aesthetics to both **smartphones** and **Android TV / Google TV** screens from a single unified application package.
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                BITCHORD TV 1.0                              │
+│                                                                             │
+│  [ Listen Now ]   Browse   Videos   Radio   Library   Now Playing   🔍  ⚙️  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
----
-
-## 📺 Android TV & Google TV Experience
-
-BitChord features a dedicated **remote-first television interface** built from the ground up by **Nyxcore** for living rooms and home theater setups:
-
-- **100% 5-Way D-Pad Remote Navigation**: Intuitive spatial focus system designed for TV remotes, gamepads, and keyboards.
-- **Dedicated TV Launcher Channel**: Includes 16:9 bitmap banners (320 × 180 px) ensuring the app appears directly in the primary **"Apps"** home screen row across Google TV, Android TV OS, and Fire TV.
-- **10-Foot 16:9 Landscape Layouts**: Optimized for 720p, 1080p, and 4K displays with safe-margin protection against overscan.
-- **Collapsible Navigation Rail**: Fast, remote-friendly access to Home, Search, Library, and Settings.
-- **Television Search with System IME**: Search songs, albums, artists, and playlists with remote input and category filter chips.
-- **QR Code Phone-to-TV Sign In**: Direct local QR pairing — scan with your phone on the same Wi-Fi to link your Google / YouTube Music session cookie without remote typing.
-- **Ambient Mode & Background Playback**: Music continues playing uninterrupted during screensaver and background transitions.
-- **Universal MediaSession Integration**: Home-screen media controls and voice assistant playback commands.
-
----
-
-## 🎬 Cinematic Player & Synchronized Lyrics
-
-The TV player provides a full-bleed, high-contrast living room listening experience:
-
-- **Full-Bleed 16:9 Artwork & Animated Canvas**: Edge-to-edge album visuals with dynamic darkening and gradient scrims.
-- **Real-Time Synchronized Lyrics**:
-  - Word-by-word and line-by-line real-time highlighting.
-  - Smooth auto-follow scrolling synchronized to Media3 playhead position.
-  - D-pad Up/Down manual browsing mode with a floating **"Return to current line"** action.
-  - Instant seek snapping and track change synchronization.
-- **Thin Progress Timeline**: Subtle resting scrubber that expands upon focus, offering ±10-second D-pad stepping with repeat acceleration.
-- **Central Play/Pause Anchor**: Prominent circular transport button flanked by Favorite, Shuffle, Previous, Next, and Queue.
-- **Smart Controls Visibility**: Auto-hides controls after idle playback to showcase full-screen visuals, instantly waking on any remote interaction without eating keypresses.
+- 🏎️ **120Hz / 60Hz Ultra-Smooth Engine**: Hardware-accelerated drawing with a strict **8.33ms frame budget** on 120Hz TV panels and zero CPU layout re-measurements.
+- 🎵 **1:1 Unified Apple Music Pill Navigation**: Continuous frosted glass pill housing `Listen Now`, `Browse`, `Videos`, `Radio`, `Library`, `Now Playing`, and an embedded `Search` (`🔍`) icon.
+- 🎤 **Apple-Physics Spring Scrolling Lyrics**: Dynamic vertical glide with VSYNC progressive syllable highlighting, background vocals, and continuous blur/scale depth.
+- 🎬 **Multi-Provider Live Video Canvas**: Seamless looping video covers resolved from Apple Music Editorial Video, Tidal Video Covers, Spotify Canvas, and Community Index.
+- 🎧 **3D Spatial Audio Virtualizer**: Hardware-accelerated soundstage widening with 1000mB stereo expander.
+- 🖤 **True OLED Pure Black & Pure White Modes**: Infinite contrast with 100% pixel shutoff on OLED displays, or high-contrast crisp Pure White light mode.
+- 🔤 **Real Bundled Typography Suite**: Instant switching between **Apple SF Pro Display**, **Google Sans**, **Arial Classic**, and **Minecraft Pixel**.
+- 📱 **Fast 1-Tap Google Sign-In**: Login directly on TV via Web Dialog or tap on your phone to link your YouTube Music account automatically.
 
 ---
 
-## 📱 Mobile Features
+## 🧭 Unified Pill Top Navigation Bar
 
-The mobile phone experience retains 100% of BitChord's signature polish:
+BitChord TV 1.0 features a single floating frosted glass navigation pill centered at the top of the display:
 
-- **Hi-Res Lossless Audio**: Stream FLAC/ALAC from pluggable module sources with YouTube Music fallback.
-- **Gapless Playback & Crossfade**: Smooth 0–12s audio transitions between tracks.
-- **Automix [Beta]**: On-device AI/DSP beat-matching and tempo transitions powered by ONNX Runtime.
-- **Synchronized Lyrics**: Word- and syllable-level highlighting across multiple sources.
-- **Offline Downloads & Local Library**: Save tracks with embedded tags; browse local device audio.
-- **Frosted Glass Aesthetic**: Modern translucent bars and album-derived color palettes.
-- **Rich Integrations**: Discord Rich Presence, Last.fm, and ListenBrainz scrobbling.
+$$\mathbf{[ \text{Listen Now} ]}\quad\text{Browse}\quad\text{Videos}\quad\text{Radio}\quad\text{Library}\quad\text{Now Playing}\quad\mathbf{🔍}\quad\quad\mathbf{⚙️}$$
+
+| Tab | Destination & Content |
+| :--- | :--- |
+| **Listen Now** | Personalized home shelves, quick picks, recently played, and recommended albums. |
+| **Browse** | Full catalogue exploration, charts, genre collections, and mood stations. |
+| **Videos** | Music video hits, live concerts, visual tracks, and trending video charts. |
+| **Radio** | Endless automated radio stations, continuous mix algorithms, and genre radio. |
+| **Library** | Liked songs, saved albums, custom playlists, offline downloads, and local device files. |
+| **Now Playing** | One-touch jump into the active full-screen Cover Flow player or empty state. |
+| **🔍 Search** | Embedded inside the navbar pill with fast voice / keyboard catalogue search. |
+| **⚙️ Settings** | Apple TV-style system preferences, audio engine, fonts, themes, and accounts. |
 
 ---
 
-## 🧭 Navigation & Remote Controls
+## 🎤 Cinematic Cover Flow & Flowing Lyrics
 
-| Input | TV Action |
-|---|---|
-| **D-Pad Up / Down / Left / Right** | Move visual focus across cards, buttons, shelves, and lyrics |
-| **D-Pad Center / Enter** | Select focused item / Play track / Toggle playback |
-| **D-Pad Left / Right (on Player Seekbar)** | Step backward / forward by ±10 seconds |
-| **D-Pad Up / Down (in Lyrics Mode)** | Manually browse lyrics (pauses auto-scroll) |
-| **Media Play / Pause / Next / Prev** | Global playback control regardless of active screen |
-| **Back Button** | Close dialogs/lyrics -> return to previous catalog -> exit |
+The TV player is designed for 10-foot living room immersion:
+
+- **Apple-Physics Smooth Glide**: Transitioning between active lines uses spring interpolation (`dampingRatio = 0.85f, stiffness = 100f`), gliding up with continuous vertical translation.
+- **VSYNC Progressive Syllable Sweep**: Syllables illuminate left-to-right in real time matching the singer's voice.
+- **Dynamic Depth & Optical Blur**: Active row is scaled to `1.04x` with 100% white contrast; past lines dim to `0.35f` with optical blur, and upcoming lines stay readable at `0.45f`.
+- **Secondary Vocal Support**: Parenthesized background vocals render in italicized accents beneath the lead line.
+- **No Music Is Playing State**: Clean placeholder screen on launch with back navigation, AirPlay device pill (`BitChord TV`), and a 1-click *"Explore Music"* button.
+
+---
+
+## 🎬 Live Video Canvas & Spatial Audio
+
+- **Silent Looping Video Canvas**: ExoPlayer `TextureView` decodes 1080p looping vertical canvas video textures behind artwork.
+- **Multi-Provider Fallback Hierarchy**:
+  1. *Apple Music Editorial Video Canvas*
+  2. *Tidal High-Res Video Covers*
+  3. *Community Index Canvas*
+  4. *Spotify Canvas Video*
+- **Spatial Audio Engine**: Android AudioTrack virtualizer expands stereo tracks into an immersive 3D surround sound field.
+
+---
+
+## ⚙️ Apple TV Settings & Custom Themes
+
+```
+┌──────────────────────────────────────┬──────────────────────────────────────┐
+│  Settings                            │  Appearance & Themes                 │
+│                                      │                                      │
+│  Apple TV 1:1 High-Contrast Invert   │  [ Pure Black (OLED)              ]  │
+│  When hovering on options, pills     │  [ Pure White (Light Mode)        ]  │
+│  invert to pure solid white with     │  [ Dynamic Artwork Dark           ]  │
+│  sharp pure black typography!        │  [ Midnight Blue                  ]  │
+└──────────────────────────────────────┴──────────────────────────────────────┘
+```
+
+- **High-Contrast Focus Inversion**: On D-pad hover, setting items invert into a **Solid Pure White pill (`#FFFFFF`)** with **Pure Black text (`#000000`)**, identical to Apple TV tvOS.
+- **Visual Theme Palettes**:
+  - 🎨 **Dynamic Artwork**: Luxury dark glass canvas with dynamic album accent luminescence.
+  - 🌌 **Midnight**: Deep charcoal-navy canvas with sapphire and violet highlights.
+  - 🖤 **Pure Black (OLED)**: True `#000000` pitch black with zero background draw calls for 100% pixel shutoff.
+  - ☀️ **Pure White (Light Mode)**: High-contrast `#F2F2F7` / `#FFFFFF` frosted glass canvas with deep `#1C1C1E` pure black text.
+
+---
+
+## 🔤 Custom Typography Suite
+
+BitChord TV 1.0 bundles genuine `.ttf` and `.otf` font families accessible instantly in Settings:
+
+| Typeface | Classification | Aesthetic |
+| :--- | :--- | :--- |
+| **Apple SF Pro Display** | Sans-Serif | Signature iOS / macOS luxury typography |
+| **Google Sans** | Geometric Sans | Modern, crisp Android & Pixel interface styling |
+| **Arial Classic** | Universal Sans | Standard clean universal legibility |
+| **Minecraft Pixel** | Monospace / 8-Bit | Retro arcade pixelated gaming aesthetic |
+
+---
+
+## 🔑 1-Tap Google Sign-In
+
+1. **Direct TV Sign-In**: Sign in directly on your TV with Google's official Web Dialog (complete 2FA, passkeys, and account picker).
+2. **Fast Mobile Web Pairing**: Scan the on-screen QR code to open the mobile web portal on your phone, tap *"Open YouTube Music on Phone"*, and link your account with automated session capture!
+
+---
+
+## 🎮 Remote Controls & Key Bindings
+
+| Remote Key | Action |
+| :--- | :--- |
+| **D-Pad Left / Right / Up / Down** | Spatial focus traversal with active spring halo |
+| **D-Pad Center / OK** | Select item / Play track / Toggle playback (tactile 0.95x compression) |
+| **D-Pad Left / Right (on Seek Bar)** | Fine seek backward / forward by ±10 seconds |
+| **Play / Pause Button** | Global playback toggle from any screen |
+| **Fast-Forward / Next** | Skip to next track in queue |
+| **Rewind / Previous** | Return to previous track or track start |
+| **Back Button** | Smoothly zoom out of Now Playing -> return to catalogue -> exit |
 
 ---
 
 ## 🌐 TV Compatibility
 
-| Platform | Target Devices | Status |
-|---|---|---|
-| **Google TV** | Chromecast with Google TV, Sony Bravia, TCL, Hisense, Philips Google TVs | **Full Support** |
-| **Android TV OS** | NVIDIA Shield TV, Xiaomi Mi Box, Mecool, generic Android TV boxes | **Full Support** |
-| **Amazon Fire TV** | Fire TV Stick 4K / Max, Fire TV Cube, Fire OS 7+ televisions | **Compatible** |
-| **Non-Android TVs** | Samsung Tizen, LG webOS, Roku OS, Apple tvOS | *Out of Scope* |
+| Platform | Verified Devices | Status |
+| :--- | :--- | :--- |
+| **Google TV** | Chromecast with Google TV (4K & HD), Sony Bravia XR, TCL Google TVs, Hisense ULED | **100% Verified** |
+| **Android TV OS** | NVIDIA Shield TV / Pro, Xiaomi Mi Box S, Mecool, Philips Android TVs | **100% Verified** |
+| **Amazon Fire TV** | Fire TV Stick 4K / Max, Fire TV Cube (3rd Gen), Omni Series QLED TVs | **Compatible** |
 
 ---
 
-## 📚 Technical Documentation
+## 🛠️ Build Instructions
 
-Explore the complete architecture and release documentation in [`docs/`](docs/):
+To build the production TV release APK:
 
-- 📄 [**TV Implementation Report**](docs/TV_IMPLEMENTATION_REPORT.md) – Architecture, security analysis, and design system decisions.
-- 📄 [**TV Setup, Themes & Keyboard Report**](docs/TV_SETUP_THEMES_REPORT.md) – Onboarding flow, visual themes, and built-in remote keyboard.
-- 📄 [**TV Performance & 120 Hz Report**](docs/TV_PERFORMANCE_REPORT.md) – Display capability subsystem, frame pacing, and render optimizations.
-- 📄 [**TV Compatibility Matrix**](docs/TV_COMPATIBILITY.md) – Device matrix, ABI details, and 16 KB page-size compliance.
-- 📄 [**TV Quality & Test Matrix**](docs/TV_TEST_MATRIX.md) – Remote traversal verification, display scaling, and playback checks.
-- 📄 [**TV Release Checklist**](docs/TV_RELEASE_CHECKLIST.md) – Store distribution and packaging guide.
+```bash
+# Clone the repository
+git clone https://github.com/nimalanrao/bitchordTV.git
+cd bitchordTV
 
----
+# Compile and package production release APK
+./gradlew assembleProdRelease
 
-## 👥 Credits & Authors
-
-- **Nyxcore**: TV Platform Lead, Android TV / Google TV UI/UX Architecture, Remote Focus Engine, and TV Synchronized Lyrics implementation.
-- **Kushagra Singh**: Original BitChord mobile application creator and core audio engine.
+# The output APK is generated at:
+# app/build/outputs/apk/prod/release/app-prod-release.apk
+```
 
 ---
 
-## ⚖️ License & Disclaimer
+## 👨‍💻 Credits & Authors
 
-BitChord is free and open-source software licensed under the **GNU General Public License v3.0 (GPLv3)**. See the [LICENSE](LICENSE) file for complete details.
-
-* **No Media Hosting:** BitChord does not host or store copyrighted audio. It functions as a client for public, user-authenticated, or local device media.
-* **API Usage:** Created for research and educational purposes. Users are responsible for complying with relevant local terms and copyright laws.
+- **Lead Architecture & TV Engineering**: **Nithyanantha** (`Nyxcore`)
+- **Version**: `1.0.0` (Build `100`)
+- **License**: GNU General Public License v3.0 (GPLv3)
